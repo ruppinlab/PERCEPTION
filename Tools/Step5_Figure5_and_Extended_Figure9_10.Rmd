@@ -5,7 +5,7 @@ output: html_notebook
 <!-- Plot Figure 5: Capturing the emergence of resistance in lung cancer cohort.-->
 <!-- Predicting the development of resistance to tyrosine kinase inhibitors (TKIs) in lung cancer patients. -->
 ```{r, setup, include=FALSE}
-# Set working directory to the directory where "project_SCPO_submission" is cloned.
+# Set working directory to the directory where "SCPO_submission" is cloned.
 working_directory='/Users/sinhas8/SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
@@ -73,11 +73,11 @@ ln -s /data/Lab_ruppin/resources/single_cell_datasets/PRJNA591860
 ```
 <!-- Load Patient malignant cells expression and metadata -->
 ```{r}
-PRJNA591860_sample_cell_names=readRDS("Data/PRJNA591860/data/PRJNA591860_sample_cell_names.RDS")
+PRJNA591860_sample_cell_names=readRDS("Data/PRJNA591860_sample_cell_names.RDS")
 Total_cell_each_patient=sapply(PRJNA591860_sample_cell_names, length)
 # Total patients with at least one malignant cell (N=39)
 sum(Total_cell_each_patient>0)
-PRJNA591860=readRDS("Data/PRJNA591860/data/PRJNA591860.RDS")
+PRJNA591860=readRDS("Data/PRJNA591860.RDS")
 dim(PRJNA591860)
 Maynard_Supp2_Demo=readxl::read_xlsx('Data/Maynard_Supp2_Demo.xlsx', sheet = 2)
 ```

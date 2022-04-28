@@ -8,7 +8,7 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 <!-- Plot Extended Figure 6 -->
 ```{r, setup, include=FALSE}
-# Set working directory to the directory where "project_SCPO_submission" is cloned.
+# Set working directory to the directory where "SCPO_submission" is cloned.
 working_directory='/Users/sinhas8/SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
