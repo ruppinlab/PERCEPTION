@@ -1,0 +1,152 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r, setup, include=FALSE}
+# Set working directory to the directory where "project_SCPO_submission" is cloned.
+working_directory='/Users/sinhas8/SCPO_submission/'
+knitr::opts_knit$set(root.dir = working_directory)
+```
+<!-- Plot Figure 1D-E:  -->
+<!-- Plot 1D-E represents single cells from cell lines (lung or non-lung) from DepMap-->
+```{r}
+onTarget=readRDS('Data/DepMapv12.RDS')
+# Function to load a RMD file to another
+ksource <- function(x, ...) {
+  library(knitr)
+  source(purl(x, output = tempfile()), ...)
+}
+ksource('Tools/step0A_functions_needed.Rmd')
+ksource('Tools/step0B_functions_needed.Rmd')
+# <!-- Load already built models for all FDA approved drugs -->
+approved_drugs_model=readRDS('Data/FDA_approved_drugs_models.RDS')
+```
+<!-- Load required TSNE mapping information for each single cells -->
+```{r}
+# Co-ordinates of t-SNE plot of single from Kinker et al. from the link below
+# https://singlecell.broadinstitute.org/single_cell/study/SCP542/pan-cancer-cell-line-heterogeneity#study-download
+lung_tSNE=read.csv('Data/lung_tSNE.txt', sep='\t')
+lung_tSNE=lung_tSNE[-1,]
+lung_tSNE[,2]=as.numeric(lung_tSNE[,2])
+lung_tSNE[,3]=as.numeric(lung_tSNE[,3])
+```
+<!-- Biomarker Preprocessing -->
+<!-- TSNE plots -->
+```{r}
+biomarker_name='MDM2'
+biomarker_id=match(biomarker_name, rownames(onTarget$CPM_scRNA_CCLE_rnorm))
+biomarker_abundance=onTarget$CPM_scRNA_CCLE_rnorm[biomarker_id,]
+needed_cells_id=match(gsub('-','\\.',lung_tSNE$NAME), colnames(onTarget$CPM_scRNA_CCLE_rnorm))
+matched_biomarker_abundance=biomarker_abundance[needed_cells_id]
+
+mdm2_model=readRDS('/Users/sinhas8/Project_scRNAbased_drugCombination/Data/resp_model_nutlin_3.RDS')
+viability_required=viability_from_model(infunc_DruName=DOI,
+                                        infun_model=mdm2_model$nutlin3$model,
+                                        infunc_dataset=onTarget$CPM_scRNA_CCLE_rnorm[
+                                        match(mdm2_model$nutlin3$model$coefnames, 
+                                                rownames(onTarget$CPM_scRNA_CCLE_rnorm)),
+                                          needed_cells_id])
+lung_tSNE$biomarker=range01(matched_biomarker_abundance)
+lung_tSNE$biomarker_scaled=range01(rank(matched_biomarker_abundance))
+lung_tSNE$killing=range01(-viability_required)
+lung_tSNE$killing_scaled=range01(rank(-viability_required))
+```
+<!-- Find other EGFR inhibitors -->
+<!-- Load The models to Predict Killing -->
+```{r}
+needed_cells_id=match(lung_tSNE$NAME, colnames(onTarget$CPM_scRNA_CCLE_rnorm))
+# Predict viability
+killing_matrix_list=lapply(1:length(approved_drugs_model), function(x) 
+  viability_required=viability_from_model(
+    infunc_DruName=names(approved_drugs_model)[x],
+    infun_model=approved_drugs_model[[x]]$model,
+    infunc_dataset=onTarget$CPM_scRNA_CCLE_rnorm[
+      match(approved_drugs_model[[x]]$model$coefnames, 
+            rownames(onTarget$CPM_scRNA_CCLE_rnorm)),
+      needed_cells_id] ))
+names(killing_matrix_list)=names(approved_drugs_model)
+killing_matrix_list=do.call(cbind, killing_matrix_list)
+expanded_lung_tSNE=cbind(lung_tSNE, killing_matrix_list,
+                         onTarget$metadata_CPM_scRNA[
+                           match(lung_tSNE$NAME,onTarget$metadata_CPM_scRNA$NAME), 10:21])
+```
+<!-- Other major EGFR inhibitors -->
+```{r}
+expanded_lung_tSNE$Y=as.numeric(expanded_lung_tSNE$Y)
+expanded_lung_tSNE$Cell_line=onTarget$metadata_CPM_scRNA$DepMap_ID[match(expanded_lung_tSNE$NAME, onTarget$metadata_CPM_scRNA$NAME)]
+expanded_lung_tSNE$EGFR_mutation=onTarget$mutations_matrix['EGFR',
+                          match(expanded_lung_tSNE$Cell_line, colnames(onTarget$mutations_matrix))]
+EGFR_WT_signature=read.csv('Data/EGFR_WT_signature.csv')
+# EGFR pathway activity
+egfr_mut_signature_activity=colMeans(onTarget$CPM_scRNA_CCLE_rnorm[EGFR_WT_signature$x,])
+expanded_lung_tSNE$egfr_mut_signature_activity=egfr_mut_signature_activity[match(expanded_lung_tSNE$NAME, names(egfr_mut_signature_activity))]
+```
+# Identify other EGFR inhibitors
+```{r}
+drugMapping_FDA=na.omit(onTarget$drugCategory[match(colnames(expanded_lung_tSNE), onTarget$drugCategory$name),])
+All_egfr_inhibitors=as.character(drugMapping_FDA$name[which(drugMapping_FDA$moa=='EGFR inhibitor')])
+```
+<!-- Create UMAP-based killing for these drugs -->
+```{r}
+plot_tsne_biomarker <- ggplot(expanded_lung_tSNE, aes(x=X, y=Y,
+                                                      color= range01(rank(-as.numeric(egfr_mut_signature_activity)))
+                                                      ))+
+  geom_point(size=0.5)+
+  theme_bw(base_size = 8)+
+  labs(color='EGFR activity')+
+  theme(legend.position='top')+
+  scale_colour_gradientn(colours = c("#F8766D",'lightgrey' ,"#00BFC4"))+
+  labs(x='', y='')
+
+plot_tsne_Killing_afatinib <- ggplot(expanded_lung_tSNE, aes(x=X, y=Y,
+                                                    color=range01(rank(-as.numeric(afatinib)))
+                                                    ))+
+  geom_point(size=0.5)+
+  theme_bw(base_size = 8)+
+  labs(color='Afatinib Killing')+
+  theme(legend.position='top')+
+  scale_colour_gradientn(colours = c("#F8766D",'lightgrey' ,"#00BFC4"))+
+  labs(x='', y='')
+plot_tsne_Killing_icotinib <- ggplot(expanded_lung_tSNE, aes(x=X, y=Y,
+                                                    color=range01(rank(-as.numeric(icotinib)))
+                                                    ))+
+  geom_point(size=0.5)+
+  theme_bw(base_size = 8)+
+  labs(color='icotinib Killing')+
+  theme(legend.position='top')+
+  scale_colour_gradientn(colours = c("#F8766D",'lightgrey' ,"#00BFC4"))+
+  labs(x='', y='')
+plot_tsne_Killing_osimertinib <- ggplot(expanded_lung_tSNE, aes(x=X, y=Y,
+                                                    color=range01(rank(-as.numeric(osimertinib)))
+                                                    ))+
+  geom_point(size=0.5)+
+  theme_bw(base_size = 8)+
+  labs(color='osimertinib Killing')+
+  theme(legend.position='top')+
+  scale_colour_gradientn(colours = c("#F8766D",'lightgrey' ,"#00BFC4"))+
+  labs(x='', y='')
+plot_tsne_Killing_lapatinib <- ggplot(expanded_lung_tSNE, aes(x=X, y=Y,
+                                                    color=range01(rank(-as.numeric(lapatinib)))
+                                                    ))+
+  geom_point(size=0.5)+
+  theme_bw(base_size = 8)+
+  labs(color='lapatinib Killing')+
+  theme(legend.position='top')+
+  scale_colour_gradientn(colours = c("#F8766D",'lightgrey' ,"#00BFC4"))+
+  labs(x='', y='')
+tsne_together <- grid.arrange(plot_tsne_biomarker,
+                              plot_tsne_Killing_afatinib,
+                              plot_tsne_Killing_icotinib,
+                              plot_tsne_Killing_lapatinib,
+                              plot_tsne_Killing_osimertinib, nrow=2)
+ggsave(tsne_together,
+       filename = 'Figures/Extended_Figure1.pdf', height=5,width=9)
+ggsave(tsne_together,
+       filename = 'Figures/Extended_Figure1.png', height=5,width=9)
+```
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
