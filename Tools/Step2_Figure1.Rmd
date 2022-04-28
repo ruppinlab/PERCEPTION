@@ -8,7 +8,7 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/sinhas8/SCPO_submission/'
+working_directory='/Users/sinhas8/project_SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 <!-- Plot Figure 1D-E:  -->
@@ -152,11 +152,7 @@ write.csv(approved_drugs_for_cancer_in_screen,
 ```
 
 ```{r}
-fileNames_ofInterest=list.files('Data/cancer_approved_drugs/')[grep('RDS',list.files('Data/cancer_approved_drugs'))]
-# performance_extended_grid=lapply(fileNames_ofInterest, get_performance)
 performance_extended_grid=readRDS('Data/model_performances.RDS')
-drugNames_fda_approved=strsplit_customv0(fileNames_ofInterest, infunc_split_by = '_', retreving_onject_id = 1)
-names(performance_extended_grid)=drugNames_fda_approved
 predictive_drugs=drugNames_fda_approved[which(sapply(performance_extended_grid, function(x) x$performance_in_scRNA[2]>0.3))]
 model_perf=performance_extended_grid
 ```
