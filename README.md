@@ -66,4 +66,4 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 
 Files to get from zenodo: A single repository name "Data" comprising following files: PRJNA591860_sample_cell_names.RDS, PRJNA591860.RDS, Supp_COhen_IdoAmit_etal.zip, TableS5 copy.csv, Suppl_table_processed_drugresponse.xlsx, Predicted_viability_ScreenNishanthApr17.RDS, summary_combAUC.tsv, summary_AUC.tsv, TableS5.csv, PRJNA591860_patient_level_killing.RDS, Ruppin120321.xlsx, subClone_id_PRJNA591860.RDS, Maynard_Supp2_Demo.xlsx, lung_killing_n_abundance_clone_keyDrugs.RDS, carfilzomib_lenalidomide_model_bulk_rf.RDS, carfilzomib_lenalidomide_Bulk_models_list.RDS, carfilzomib_lenalidomide_model.RDS, genes_across_scRNA_datasets_ofInterest.RDS, genesUsed_toBuild.RDS, model_performances.RDS, EGFR_WT_signature_PDC.csv, EGFR_WT_signature.csv, lung_tSNE.txt, Response_model_nutlin3.RDS, FDA_approved_drugs_models.RDS, DepMapv12.RDS
 
-
+Contact: Sunju Sinha (sanju@terpmail.umd.edu)
