@@ -112,7 +112,7 @@ expanded_lung_tSNE$Y=as.numeric(expanded_lung_tSNE$Y)
 expanded_lung_tSNE$Cell_line=onTarget$metadata_CPM_scRNA$DepMap_ID[match(expanded_lung_tSNE$NAME, onTarget$metadata_CPM_scRNA$NAME)]
 expanded_lung_tSNE$EGFR_mutation=onTarget$mutations_matrix['EGFR',
                           match(expanded_lung_tSNE$Cell_line, colnames(onTarget$mutations_matrix))]
-EGFR_WT_signature=read.csv('../../Data/EGFR_WT_signature.csv')
+EGFR_WT_signature=read.csv('Data/EGFR_WT_signature.csv')
 # EGFR pathway activity
 egfr_mut_signature_activity=colMeans(onTarget$CPM_scRNA_CCLE_rnorm[EGFR_WT_signature$x,])
 expanded_lung_tSNE$egfr_mut_signature_activity=egfr_mut_signature_activity[match(expanded_lung_tSNE$NAME, names(egfr_mut_signature_activity))]
@@ -144,15 +144,8 @@ ggsave(tsne_together_gefitinib, filename = '../../Figures/Figure1_erlotinibv1.pn
 <!-- Figure 1B-C -->
 <!-- Performance of our models in cross validation -->
 ```{r}
-drugNames_fda_approved_used=drugNames_fda_approved[na.omit(match(approved_drugs_for_cancer,
-                                          stripall2match(drugNames_fda_approved)))]
-approved_drugs_for_cancer_in_screen=unique(onTarget$secondary_screen_drugAnnotation$CommonName[na.omit(match(approved_drugs_for_cancer, stripall2match(onTarget$secondary_screen_drugAnnotation$CommonName)))])
-write.csv(approved_drugs_for_cancer_in_screen,
-          '../../Data/approved_drugs_for_cancer_in_screen.csv')
-```
-
-```{r}
 performance_extended_grid=readRDS('Data/model_performances.RDS')
+drugNames_fda_approved=names(performance_extended_grid)
 predictive_drugs=drugNames_fda_approved[which(sapply(performance_extended_grid, function(x) x$performance_in_scRNA[2]>0.3))]
 model_perf=performance_extended_grid
 ```
