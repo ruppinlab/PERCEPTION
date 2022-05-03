@@ -90,7 +90,6 @@ genesUsed_toBuild=Reduce(intersect,list(rownames(onTarget$expression_20Q4),
 ```
 <!-- seurat_clustering given an expression matrix -->
 ```{r}
-require(Seurat)
 seurat_clustering <- function(input_matrix){
   lung_so <- CreateSeuratObject(counts = input_matrix,
                                 project = "lungv0",
@@ -151,15 +150,18 @@ PRJNA591860_subclone_meanExp=lapply(paitent_n_cloneAnn,function(x)
 ```
 <!-- Obtain the drug response models -->
 ```{r}
-file_list=list.files(path="Data/PRJNA591860/response_models/",full.names=TRUE)
-model_file_list=file_list[grep("_model.RDS",file_list)]
-DOI=unlist(lapply(model_file_list,function(x){unlist(strsplit(tail(unlist(strsplit(x,split="/")),1),split="_"))[1]}))
-# Load the models for the drugs in the cohort
-drugs_used=c("alectinib","ceritinib","crizotinib","dabrafenib","erlotinib","gemcitabine","lorlatinib","osimertinib","trametinib")
-DOI_file_id=unlist(sapply(drugs_used, function(x) grep(x, model_file_list) ))
-drug_models=lapply(DOI_file_id, function(x) readRDS(model_file_list[x]))
-length(drug_models)
-names(drug_models)=names(DOI_file_id)
+# file_list=list.files(path="Data/PRJNA591860/response_models/",full.names=TRUE)
+# model_file_list=file_list[grep("_model.RDS",file_list)]
+# DOI=unlist(lapply(model_file_list,function(x){unlist(strsplit(tail(unlist(strsplit(x,split="/")),1),split="_"))[1]}))
+# # Load the models for the drugs in the cohort
+# drugs_used=c("alectinib","ceritinib","crizotinib","dabrafenib","erlotinib","gemcitabine","lorlatinib","osimertinib","trametinib")
+# model_file_list[DOI_file_id]
+# DOI_file_id=unlist(sapply(drugs_used, function(x) grep(x, model_file_list) ))
+# drug_models=lapply(DOI_file_id, function(x) readRDS(model_file_list[x]))
+# length(drug_models)
+# names(drug_models)=names(DOI_file_id)
+# saveRDS(drug_models,'Data/Responde_models_usedin_PRJNA591860_lung.RDS')
+drug_models=readRDS('Data/Responde_models_usedin_PRJNA591860_lung.RDS')
 ```
 <!-- Model Performance -->
 ```{r}
@@ -217,7 +219,6 @@ EF11_panelB <- ggplot(Cluster_abundance_in_patients_2plot,
   facet_grid(.~Treatment_Timepoint, shrink = T, scales = "free", space = "free_x")+
   labs(y='Clone\nProportion')
 ggsave(EF11_panelB, filename = 'Figures/EF11_panelB.pdf', height=4, width=6)
-ggsave(EF11_panelB, filename = 'Figures/EF11_panelB.png', height=4, width=6)
 ```
 <!-- Plot Killing at clone level for Erlotinib -->
 ```{r}
@@ -257,7 +258,6 @@ EF11_panel_C=ggplot(Killing_at_clone_level[erlotinib_id,], aes(y=erlotinib, x=Cl
        color= 'Predicted Viability', size='Predicted Viability')
 
 ggsave(EF11_panel_C, filename = 'Figures/EF11_panel_C.pdf', height=5, width=9)
-ggsave(EF11_panel_C, filename = 'Figures/EF11_panel_C.png', height=5, width=9)
 ```
 <!-- Plot Killing at clone level for osimertinib -->
 ```{r}
@@ -338,7 +338,6 @@ EF11 <- grid.arrange(EF11_panelA_umap_lung_dataset,
                      EF11_panel_G,
                      layout_matrix = rbind(c(1, 2, 2),c(1, 2, 2),c(3), c(4),c(5), c(6)))
 ggsave(EF11, filename = 'Figures/Extended_Figure11.pdf', height=16, width=12)
-ggsave(EF11, filename = 'Figures/Extended_Figure11.png', height=16, width=12)
 ```
 <!-- Step 2: Patient level killing (colMax) -->
 ```{r}
@@ -368,7 +367,7 @@ Killing_patient_level=readRDS('Data/PRJNA591860_patient_level_killing.RDS')
 <!-- Load the demographics provided -->
 ```{r}
 Killing_patient_level=t(Killing_patient_level)
-Maynard_Supp2_Demo=readxl::read_xlsx('/Users/sinhas8/Project_scRNAbased_drugCombination/Data/Maynard_Supp2_Demo.xlsx', sheet = 2)
+Maynard_Supp2_Demo=readxl::read_xlsx('Data/Maynard_Supp2_Demo.xlsx', sheet = 2)
 sort(table(Maynard_Supp2_Demo$`Patient ID`))
 Killing_patient_level_ann_biopsy_timepoint=cbind(Killing_patient_level, 
 Maynard_Supp2_Demo[match(rownames(Killing_patient_level),
@@ -446,8 +445,6 @@ fig5A <- ggplot(Viab_preANDpost_treatment_integrated,
   labs(y='Treatment Length', x="Extent of resistance\n from the baseline")
 ggsave(fig5A,
        filename = 'Figures/Figure5A.pdf', height = 4, width = 8)
-ggsave(fig5A,
-       filename = 'Figures/Figure5A.png',height = 4, width = 8)
 colnames(Viab_preANDpost_treatment_integrated)[1]='PERCEPTION Extent of Response'
 write.csv(Viab_preANDpost_treatment_integrated,'Data/TableS5.csv')
 ```
@@ -478,7 +475,7 @@ killing_n_abundance_clone_keyDrugs=readRDS('Data/lung_killing_n_abundance_clone_
 clones_with_more_than_1points=killing_n_abundance_clone_keyDrugs$CloneID %in% 
   names(which(table(killing_n_abundance_clone_keyDrugs$CloneID)>1))
 killing_n_abundance_clone_keyDrugs=killing_n_abundance_clone_keyDrugs[clones_with_more_than_1points,]
-killing_n_abundance_clone$treatment_time=as.numeric(killing_n_abundance_clone$treatment_time)
+# killing_n_abundance_clone$treatment_time=as.numeric(killing_n_abundance_clone$treatment_time)
 mean_killing_each_clone=data.frame(aggregate(killing_n_abundance_clone_keyDrugs$respective_response ~
                                                killing_n_abundance_clone_keyDrugs$CloneID, FUN = mean))
 colnames(mean_killing_each_clone)=c('cloneID', 'mean_killing')
@@ -547,12 +544,8 @@ Extended_Figure_8B <- ggplot(Viab_preANDpost_treatment_integrated,
   labs(y='Biopsies Days from \nthe start of treatment',
        x="∆Viability differential\n from baseline")
 ggsave(Extended_Figure_8B,
-       filename = 'Figures/Extended_Figure_8B.png',
-       height = 5, width = 7)
-ggsave(Extended_Figure_8B,
        filename = 'Figures/Extended_Figure_8B.pdf',
        height = 5, width = 7)
-
 ```
 <!-- Correlation btw resistance and days of treatment within each patient-->
 ```{r}
@@ -572,9 +565,6 @@ Extended_Figure_8C<- ggplot(Viab_preANDpost_treatment_integrated[POI_id,],
   theme_bw(base_size = 20)+
   labs(y='Biopsies Days from \nthe start of treatment',
        x="∆Viability differential\n from baseline")
-ggsave(Extended_Figure_8C,
-       filename = 'Figures/Extended_Figure_8C.png',
-       height = 5, width = 7)
 ggsave(Extended_Figure_8C,
        filename = 'Figures/Extended_Figure_8C.pdf',
        height = 5, width = 7)
@@ -598,9 +588,6 @@ Extended_Figure_8D<- ggplot(na.omit(Viab_preANDpost_treatment_integrated[only_PD
   labs(y='Biopsies Days from \nthe start of treatment',
        x="∆Viability differential\n from baseline")+
   scale_fill_manual(values=c("#999999", "#E69F00"))
-ggsave(Extended_Figure_8D,
-       filename = 'Figures/Extended_Figure_8D.png',
-       height = 5, width = 7)
 ggsave(Extended_Figure_8D,
        filename = 'Figures/Extended_Figure_8D.pdf',
        height = 5, width = 7)

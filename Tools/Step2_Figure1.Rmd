@@ -138,8 +138,8 @@ plot_tsne_Killing <- ggplot(expanded_lung_tSNE, aes(x=X, y=Y,
   labs(x='', y='')
   
 tsne_together_gefitinib <- grid.arrange(plot_tsne_biomarker, plot_tsne_Killing, nrow=1)
-ggsave(tsne_together_gefitinib, filename = '../../Figures/Figure1_erlotinibv1.pdf', height=2.5, width=5.6)
-ggsave(tsne_together_gefitinib, filename = '../../Figures/Figure1_erlotinibv1.png', height=2.5, width=5.6)
+ggsave(tsne_together_gefitinib, filename = 'Figures/Figure1_erlotinibv1.pdf', height=2.5, width=5.6)
+ggsave(tsne_together_gefitinib, filename = 'Figures/Figure1_erlotinibv1.png', height=2.5, width=5.6)
 ```
 <!-- Figure 1B-C -->
 <!-- Performance of our models in cross validation -->
@@ -193,7 +193,7 @@ PanelC <- ggplot(df2plot[df2plot$estimate.cor>0.3,], aes(x=drug_category,y=estim
 tsne_together <- grid.arrange(plot_tsne_biomarker, plot_tsne_Killing, nrow=1)
 Figure1_BC=grid.arrange(PanelB, PanelC, nrow = 1)
 ggsave(grid.arrange(Figure1_BC, tsne_together, nrow=2),
-       filename = '../../Figures/Figure1BCDE.pdf', width=12, height=12)
+       filename = 'Figures/Figure1BCDE.pdf', width=12, height=12)
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.

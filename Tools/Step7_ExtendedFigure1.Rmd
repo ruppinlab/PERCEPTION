@@ -40,10 +40,10 @@ lung_tSNE[,3]=as.numeric(lung_tSNE[,3])
 biomarker_name='MDM2'
 biomarker_id=match(biomarker_name, rownames(onTarget$CPM_scRNA_CCLE_rnorm))
 biomarker_abundance=onTarget$CPM_scRNA_CCLE_rnorm[biomarker_id,]
-needed_cells_id=match(gsub('-','\\.',lung_tSNE$NAME), colnames(onTarget$CPM_scRNA_CCLE_rnorm))
+needed_cells_id=match(lung_tSNE$NAME, colnames(onTarget$CPM_scRNA_CCLE_rnorm))
 matched_biomarker_abundance=biomarker_abundance[needed_cells_id]
 
-mdm2_model=readRDS('/Users/sinhas8/Project_scRNAbased_drugCombination/Data/resp_model_nutlin_3.RDS')
+mdm2_model=readRDS('Data/Response_model_nutlin3.RDS')
 viability_required=viability_from_model(infunc_DruName=DOI,
                                         infun_model=mdm2_model$nutlin3$model,
                                         infunc_dataset=onTarget$CPM_scRNA_CCLE_rnorm[
