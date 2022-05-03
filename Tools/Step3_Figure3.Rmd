@@ -27,7 +27,7 @@ resp=na.omit(resp)
 ```
 <!-- #Combination Killing (Min killing Principle) -->
 ```{r}
-Clone_Counts_per_patients=readxl::read_xlsx('/Users/sinhas8/Downloads/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
 Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
 colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
 rownames_for_cloneexp_matrix=make.names(clone_Level_z_expression$Gene, unique = T)
@@ -104,7 +104,7 @@ ggsave(ggarrange(panelC, panelD),
 ```
 <!-- Panel 3A -->
 ```{r}
-Clone_Counts_per_patients=readxl::read_xlsx('/Users/sinhas8/Downloads/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
 Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
 comb_killing_df=comb_killing_df[!is.na(match(comb_killing_df$patient, Clone_Counts_per_patients$...1)),]
 colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
