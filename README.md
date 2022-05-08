@@ -34,7 +34,7 @@ The Data subdirectory will contain the data files, which you will download from 
 
 Step 4: Download the data files from the following Zenodo repository https://doi.org/10.5281/zenodo.6513938
 into the Data subdirectory. Due to the limitations of Zenodo, you must download one file at a time. The data files
-expected are listed near the bttom of this file. 
+expected are listed near the bottom of this file. 
 
 Step 5: While in the Data directory,
        run 
@@ -49,11 +49,13 @@ Replace the characters in single quotes with the full path to the repository SCP
 Step 7: From the SCPO directory open RStudio 
         You may need to run setwd() to set the working directory.
 
-Step 8: Using the File pull-down menu in Rstudio, load and run in succession:
+Step 8: "Step0A" comprises a list of libraries from line 372-399 that are required to run the following scripts. Please install them in your Rstudio environment. Please refer to this to install a new library: https://r-coder.com/install-r-packages/
+
+Step 9: Using the File pull-down menu in Rstudio, load and run in succession:
     Tools/Step2_Figure1.Rmd  Tools/Step3_Figure3.Rmd  Tools/Step5_Figure5_and_Extended_Figure9_10.Rmd  Tools/Step6_ExtendedFigure4-6.Rmd  Tools/Step7_ExtendedFigure1.Rmd
 The filenames are chosen so that  "StepN" represents the order of the results are produced and presented in the manuscript.
 
-Step 9 (Optional, open-ended): Using whatever criteria you wish compare the newly generated figires in the Figures subdirectory to the manuscript figures
+Step 10 (Optional, open-ended): Using whatever criteria you wish compare the newly generated figires in the Figures subdirectory to the manuscript figures
     in the Figures_expected subdirectory
 
 Notes on the structure of repository:
