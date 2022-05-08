@@ -395,10 +395,8 @@ library(viridis)
 library(reshape2)
 require(Seurat)
 library(corrplot)
-require(DEGreport)
 require(devtools)
 require(ggpmisc)
-require(modes)
 require(readxl)
 ```
 
