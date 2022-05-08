@@ -32,7 +32,7 @@ Step 3: Run
 This command creates a Data subdirectory that is parallel to the Figures and Tools subdirectories.
 The Data subdirectory will contain the data files, which you will download from Zenodo in the next step.
 
-Step 4: Download the data files from the following Zenodo repository https://doi.org/10.5281/zenodo.6513938
+Step 4: Download the data files from the following Zenodo repository https://doi.org/10.5281/zenodo.6528990
 into the Data subdirectory. Due to the limitations of Zenodo, you must download one file at a time. The data files
 expected are listed near the bottom of this file. 
 
