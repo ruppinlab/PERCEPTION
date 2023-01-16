@@ -1,11 +1,9 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+html_notebook: default
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
 working_directory='/Users/sinhas8/project_SCPO_submission/'
@@ -112,7 +110,7 @@ expanded_lung_tSNE$Y=as.numeric(expanded_lung_tSNE$Y)
 expanded_lung_tSNE$Cell_line=onTarget$metadata_CPM_scRNA$DepMap_ID[match(expanded_lung_tSNE$NAME, onTarget$metadata_CPM_scRNA$NAME)]
 expanded_lung_tSNE$EGFR_mutation=onTarget$mutations_matrix['EGFR',
                           match(expanded_lung_tSNE$Cell_line, colnames(onTarget$mutations_matrix))]
-EGFR_WT_signature=read.csv('Data/EGFR_WT_signature.csv')
+EGFR_WT_signature=read.csv('../../Data/EGFR_WT_signature.csv')
 # EGFR pathway activity
 egfr_mut_signature_activity=colMeans(onTarget$CPM_scRNA_CCLE_rnorm[EGFR_WT_signature$x,])
 expanded_lung_tSNE$egfr_mut_signature_activity=egfr_mut_signature_activity[match(expanded_lung_tSNE$NAME, names(egfr_mut_signature_activity))]
@@ -136,12 +134,21 @@ plot_tsne_Killing <- ggplot(expanded_lung_tSNE, aes(x=X, y=Y,
   theme(legend.position='top')+
   scale_colour_gradientn(colours = c("#F8766D",'lightgrey' ,"#00BFC4"))+
   labs(x='', y='')
-
+  
 tsne_together_gefitinib <- grid.arrange(plot_tsne_biomarker, plot_tsne_Killing, nrow=1)
-ggsave(tsne_together_gefitinib, filename = 'Figures/Figure1_erlotinibv1.pdf', height=2.5, width=5.6)
+ggsave(tsne_together_gefitinib, filename = '../../Figures/Figure1_erlotinibv1.pdf', height=2.5, width=5.6)
+ggsave(tsne_together_gefitinib, filename = '../../Figures/Figure1_erlotinibv1.png', height=2.5, width=5.6)
 ```
 <!-- Figure 1B-C -->
 <!-- Performance of our models in cross validation -->
+```{r}
+# drugNames_fda_approved_used=drugNames_fda_approved[na.omit(match(approved_drugs_for_cancer,
+#                                           stripall2match(drugNames_fda_approved)))]
+# approved_drugs_for_cancer_in_screen=unique(onTarget$secondary_screen_drugAnnotation$CommonName[na.omit(match(approved_drugs_for_cancer, stripall2match(onTarget$secondary_screen_drugAnnotation$CommonName)))])
+# write.csv(approved_drugs_for_cancer_in_screen,
+#           '../../Data/approved_drugs_for_cancer_in_screen.csv')
+```
+
 ```{r}
 performance_extended_grid=readRDS('Data/model_performances.RDS')
 drugNames_fda_approved=names(performance_extended_grid)
@@ -179,7 +186,7 @@ performance_in_pseudo_bulk$dataused='pseudo-bulk'
 df2plot=rbind(performance_in_scRNA, performance_in_bulk, performance_in_pseudo_bulk)
 df2plot$drugName=drugNames_fda_approved
 df2plot$drug_category=factor(onTarget$drugCategory$drug_category[match(df2plot$drugName,
-                                                              stripall2match(onTarget$drugCategory$name))],
+                                                                stripall2match(onTarget$drugCategory$name))],
                              labels = c('Chemo', 'Targeted'))
 PanelC <- ggplot(df2plot[df2plot$estimate.cor>0.3,], aes(x=drug_category,y=estimate.cor, color=dataused))+
   geom_boxplot()+
@@ -192,7 +199,7 @@ PanelC <- ggplot(df2plot[df2plot$estimate.cor>0.3,], aes(x=drug_category,y=estim
 tsne_together <- grid.arrange(plot_tsne_biomarker, plot_tsne_Killing, nrow=1)
 Figure1_BC=grid.arrange(PanelB, PanelC, nrow = 1)
 ggsave(grid.arrange(Figure1_BC, tsne_together, nrow=2),
-       filename = 'Figures/Figure1BCDE.pdf', width=12, height=12)
+       filename = '../../Figures/Figure1BCDE.pdf', width=12, height=12)
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.

@@ -1,7 +1,9 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+html_notebook: default
 ---
+
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
 working_directory='/Users/sinhas8/SCPO_submission/'
@@ -27,7 +29,7 @@ resp=na.omit(resp)
 ```
 <!-- #Combination Killing (Min killing Principle) -->
 ```{r}
-Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=readxl::read_xlsx('/Users/sinhas8/Downloads/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
 Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
 colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
 rownames_for_cloneexp_matrix=make.names(clone_Level_z_expression$Gene, unique = T)
@@ -100,11 +102,11 @@ panelD <- ggroc(smooth(rocobj))+
   geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed")+
   annotate("text", x=0.2, y=0.1, label= paste('AUC=',round(rocobj$auc,3)), size=5)
 ggsave(ggarrange(panelC, panelD),
-       filename = 'Figures/Figure5_panelBC.pdf', height=6, width=12)
+       filename = '../../Figures/Figure5_panelBC.pdf', height=6, width=12)
 ```
 <!-- Panel 3A -->
 ```{r}
-Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=readxl::read_xlsx('/Users/sinhas8/Downloads/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
 Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
 comb_killing_df=comb_killing_df[!is.na(match(comb_killing_df$patient, Clone_Counts_per_patients$...1)),]
 colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')

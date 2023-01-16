@@ -1,7 +1,9 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+html_notebook: default
 ---
+
 <!-- Below functions are needed to build, train, and test PERCEPTION model in cell lines & patients -->
 # This could be divided into two steps: 
 # 1. Initial training in cell lines using bulk-expression and drug response.
@@ -127,11 +129,11 @@ run_parallel_feature_ranking_bulk<-function(id_cancerType=cancerType,
   featuresRank_fromBulk
 }
 ```
-<!-- Step 1B: Identify genes with bulk-expression are significantly correlated with drugs response -->
+<!-- Step 2: Using features selected from bulk-expression, we build a model in bulk & then tune the parameters based on performance in sc-rna-seq-->
 ```{r}
 build_on_BULK_v2<-function(infunc_drugName=DOI[1],
                         infunc_cancerType='PanCan',
-                        infunc_featues=featuersNames_bulk_PanCan[[1]],
+                        infunc_features=featuersNames_bulk_PanCan[[1]],
                         single_best=featuersNames_bulk_PanCan[[1]][1],
                         k_features=100,
                         mode='AUC',
@@ -162,9 +164,9 @@ build_on_BULK_v2<-function(infunc_drugName=DOI[1],
   ############
   # Train Data:: on bulk
   ##########
-  Train_infunc_featues_id=head(na.omit(match(infunc_featues,
+  Train_infunc_features_id=head(na.omit(match(infunc_features,
                                              rownames(onTarget$expression_rnorm))), k_features)
-  Train_features=t(onTarget$expression_rnorm[Train_infunc_featues_id, common_cellLines])
+  Train_features=t(onTarget$expression_rnorm[Train_infunc_features_id, common_cellLines])
   Train_Target_Label=infunc_response[common_cellLines]
   Train_features=Train_features[which(!is.na(Train_Target_Label)),]
   Train_Target_Label=unlist(Train_Target_Label[which(!is.na(Train_Target_Label))])
@@ -176,9 +178,9 @@ build_on_BULK_v2<-function(infunc_drugName=DOI[1],
   cell_ID_for_test_data1=Reduce(intersect,list(cellLines2remove,
                                                colnames(onTarget$scRNA_subset_rnorm),
                                                names(infunc_response) ))
-  Test_infunc_featues_id=head(na.omit(match(infunc_featues,
+  Test_infunc_features_id=head(na.omit(match(infunc_features,
                                              rownames(onTarget$scRNA_subset_rnorm))), k_features)
-  Test_features=t(onTarget$scRNA_subset_rnorm[Test_infunc_featues_id, cell_ID_for_test_data1])
+  Test_features=t(onTarget$scRNA_subset_rnorm[Test_infunc_features_id, cell_ID_for_test_data1])
   Test_Target_Label=unlist(infunc_response)[cell_ID_for_test_data1]
   Test_features=Test_features[which(!is.na(Test_Target_Label)),]
   Test_Target_Label=unlist(Test_Target_Label[which(!is.na(Test_Target_Label))])
@@ -188,10 +190,10 @@ build_on_BULK_v2<-function(infunc_drugName=DOI[1],
   cell_ID_for_test_data2=Reduce(intersect,list(cellLines2remove,
                                                colnames(onTarget$expression_rnorm),
                                                names(infunc_response) ))
-  Test2_infunc_featues_id=head(na.omit(match(infunc_featues,
+  Test2_infunc_features_id=head(na.omit(match(infunc_features,
                                             rownames(onTarget$expression_rnorm))),
                                k_features)
-  Test2_features=t(onTarget$expression_rnorm[Test2_infunc_featues_id,cell_ID_for_test_data2])
+  Test2_features=t(onTarget$expression_rnorm[Test2_infunc_features_id,cell_ID_for_test_data2])
   Test2_Target_Label=unlist(infunc_response)[cell_ID_for_test_data2]
   Test2_features=Test2_features[which(!is.na(Test2_Target_Label)),]
   Test2_Target_Label=unlist(Test2_Target_Label[which(!is.na(Test2_Target_Label))])
@@ -203,10 +205,10 @@ build_on_BULK_v2<-function(infunc_drugName=DOI[1],
                                                names(infunc_response)))]
   cellLine_ID_for_test_data3=unique(
     onTarget$metadata_CPM_scRNA$DepMap_ID[onTarget$metadata_CPM_scRNA$DepMap_ID %in% Reduce(intersect,list(cellLines2remove,names(infunc_response)))])
-  Test3_infunc_featues_id=head(na.omit(match(infunc_featues,
+  Test3_infunc_features_id=head(na.omit(match(infunc_features,
                                             rownames(onTarget$CPM_scRNA_CCLE_rnorm))),
                                k_features)
-  Test3_features=t(onTarget$CPM_scRNA_CCLE_rnorm[Test3_infunc_featues_id,
+  Test3_features=t(onTarget$CPM_scRNA_CCLE_rnorm[Test3_infunc_features_id,
                                                  cells_ID_for_test_data3])
   Test3_Target_Label=unlist(infunc_response)[as.character(cellLine_ID_for_test_data3)]
   ##########
@@ -312,7 +314,7 @@ build_biomarker_step2_bulk<-function(features_fromBulk=featuers_bulk_all_cancer_
                      function(x) 
                        err_handle(build_on_BULK_v2(infunc_drugName=infunc_drugsList[x],
                                                 infunc_cancerType=id_cancerType,
-                                                infunc_featues=rownames(features_fromBulk[[x]]),
+                                                infunc_features=rownames(features_fromBulk[[x]]),
                                                 single_best=features_fromBulk[[x]][1,],
                                                 k_features=infunc_k_features,
                                                 mode=resp_measure_mode,
@@ -348,11 +350,10 @@ infunc_compare_performance=list(model_perf_CV=do.call(rbind, lapply(model_for,
     err_handle(mean(x[,2], na.rm = T) ))
 }
 ```
-##################
 <!-- get Cell lines list and response matrix of a particular cancer type considering exclusions-->
-##################
 ```{r}
-get_response_matrix <- function(infunc_mode=mode,infunc_drugName, exclude_cancer){
+get_response_matrix <- function(infunc_mode=mode,
+                                infunc_drugName, exclude_cancer){
   if(infunc_mode=='AUC'){
     # Mode 1: All HTS
     # Mode 2: Priortize MTS
@@ -595,8 +596,8 @@ seurat_clustering <- function(input_matrix){
 ```
 <!-- Genes used to build models -->
 ```{r}
-# genesUsed_toBuild=intersect(rownames(onTarget$expression_20Q4),
-#                             rownames(onTarget$scRNA_complete))
+genesUsed_toBuild=intersect(rownames(onTarget$expression_20Q4),
+                            rownames(onTarget$scRNA_complete))
 # saveRDS(genesUsed_toBuild, 'Data/genesUsed_toBuild.RDS')
 ```
 

@@ -1,0 +1,167 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+<!-- Load libraries -->
+```{r}
+library(Seurat)
+require('useful')
+require(ggplot2)
+require(ggpubr)
+require(pROC)
+```
+<!-- Load data -->
+```{r}
+BRCA_seurat=readRDS('/Users/sinhas8/project_SCPO_submission/Data/seurat_object_breast_cancer_trial.RDS')
+sc_brca <- BRCA_seurat
+
+sc <- readRDS('/Users/sinhas8/Downloads/seurat_clusters.rds')
+DefaultAssay(sc) <- "RNA"
+
+MM_cohort=readRDS('/Users/sinhas8/project_SCPO_submission/Data/MM_cohort_seuratObj.RDS')
+MM_cohort
+rownames(x = MM_cohort)
+
+DefaultAssay(sc_brca) <- "RNA"
+```
+<!-- Load scripts -->
+```{r}
+setwd('/Users/sinhas8/project_SCPO_submission/Tools/beyondcell-abe7e4b84af3e8f14bdbc5531f2e45d826e442dd/')
+source('/Users/sinhas8/Project_TrueTarget/Tools_github/3.Tools/myCustom_functions.R')
+source('R/Basics.R')
+source('R/Format.R')
+source('R/Genesets.R')
+source('R/Manipulation.R')
+source('R/objects.R')
+source('R/Ranks.R')
+source('R/Reductions.R')
+source('R/Score.R')
+source('R/Visualization.R')
+# <!-- Load add needed data -->
+load('data/PSc.RData')
+load('data/SSc.RData')
+load('data/drugInfo.RData')
+load('data/DSS.RData')
+load('R/sysdata.rda')
+```
+<!-- Try BeyondCell -->
+```{r}
+gs <- GenerateGenesets(SSc)
+#compute BeyondCell Score
+bc_MM <- bcScore(MM_cohort, gs, expr.thres = 0.1)
+```
+<!-- Identify provided BC signatures mapping to drugs -->
+```{r}
+signature_annotation=readxl::read_xlsx('/Users/sinhas8/Downloads/13073_2021_1001_MOESM10_ESM.xlsx', skip = 1)
+sigAnn_matched=signature_annotation[match(names(bc_MM@switch.point), signature_annotation$sig_id),]
+```
+<!-- Compute BC_score for drugs given to MM patients -->
+```{r}
+grep('carfilzomib',sigAnn_matched$Name, ignore.case = T)
+lenalidomide_sig_id=sigAnn_matched$sig_id[grep('lenalidomide',sigAnn_matched$Name, ignore.case = T)]
+bc_score_lenalomide=bc_MM@normalized[lenalidomide_sig_id,]
+saveRDS(bc_score_lenalomide, '/Users/sinhas8/project_SCPO_submission/Data/MM_bc_score_lenalomide.RDS')
+```
+<!-- COmpute a killing score based on the above BC score -->
+```{r}
+killing_eachClone_beyondCell=bc_score_lenalomide
+killing_eachClone=data.frame(killing_eachClone_beyondCell)
+killing_eachClone_z=data.frame(apply(killing_eachClone, 2, scale))
+# killing_eachClone_z=data.frame(killing_eachClone$killing_eachClone_beyondCell)
+rownames(killing_eachClone_z)=rownames(killing_eachClone)
+
+killing_df=data.frame(patient=gsub('z.','',
+                                        strsplit_customv0(rownames(killing_eachClone_z),
+                                                          infunc_split_by = '_', retreving_onject_id = 1)),
+                           clone_id=strsplit_customv0(rownames(killing_eachClone_z),
+                                                      infunc_split_by = '_', retreving_onject_id = 2),
+                           comb_killing=unlist(killing_eachClone_z[,1]))
+```
+<!-- Function needed below -->
+```{r}
+each_patient_killing <- function(x=1,
+                                 mode= 'weighted_average',
+                                 clone_killing_matrix=mono_killing_df){
+  total_cells=sum(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id])
+  clone_weights=unlist(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id]/total_cells)
+  if(mode=='weighted_average'){
+    weighted_killing=sum(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing*clone_weights)
+  } else if(mode=='min'){
+    weighted_killing=min(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing)
+  } else if(mode=='max'){
+    weighted_killing=max(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing)
+  } else if(mode=='weighted_max'){
+    weighted_killing=max(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing*clone_weights)
+  }
+  weighted_killing
+}
+
+```
+
+<!-- Compute patient level killing -->
+```{r}
+Clone_Counts_per_patients=readxl::read_xlsx('/Users/sinhas8/project_SCPO_submission/Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
+
+killing_df=killing_df[!is.na(match(killing_df$patient, Clone_Counts_per_patients$...1)),]
+colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
+killing_df=data.frame(
+  weighted_killing = sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'weighted_average', clone_killing_matrix = killing_df)) ,
+  min_killing=sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'min', clone_killing_matrix = killing_df)),
+  max_killing=sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'max', clone_killing_matrix = killing_df)),
+  max_killing_weighted=sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'weighted_max', clone_killing_matrix = killing_df))
+)
+```
+<!-- # Exp vs Predicted -->
+```{r}
+#weighted average
+most_resistant_clone_based_killing=killing_df$max_killing_weighted
+names(most_resistant_clone_based_killing)=Clone_Counts_per_patients$patients
+resp=readxl::read_xlsx('/Users/sinhas8/project_SCPO_submission/Data/Supp_COhen_IdoAmit_etal/resp_info.xlsx')
+resp=na.omit(resp)
+
+Exp_vs_pred_killing=data.frame(resp,
+ most_resistant_clone_based_killing=most_resistant_clone_based_killing[match(resp$Patient, names(most_resistant_clone_based_killing))])
+Exp_vs_pred_killing$response=factor(Exp_vs_pred_killing$response)
+Exp_vs_pred_killing$response=factor(Exp_vs_pred_killing$response,
+                                    rev(levels(Exp_vs_pred_killing$response)))
+panelC <- ggplot(Exp_vs_pred_killing,
+                 aes(y=most_resistant_clone_based_killing, x=response, color=response))+
+  geom_boxplot()+
+  geom_point()+
+  stat_compare_means(method.args = list(alternative='g'), size=7, label = 'p', label.x = 1.2, label.y=0.7)+
+  theme_bw(base_size = 15)+
+  labs(y='Predicted Viability of the\n Combination (z-score)', fill='',
+       x='Multiple Myeloma\npatients')+
+  theme(legend.position = 'top')
+# panelC
+rocobj <- roc(response = Exp_vs_pred_killing$response,
+              predictor = Exp_vs_pred_killing$most_resistant_clone_based_killing)
+rocobj
+# panelD <- ggroc(smooth(rocobj))+
+#   theme_bw(base_size = 15) +
+#   geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed")+
+#   annotate("text", x=0.2, y=0.1, label= paste('AUC=',round(rocobj$auc,3)), size=5)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

@@ -1,0 +1,20 @@
+HERNANDEZ_MITOTIC_ARREST_BY_DOCETAXEL_2_DN
+> Genes down-regulated in MDA-MB-231 cells (breast cancer, mutated TP53 [GeneID=7157]) undergoing mitotic arrest and apoptosis after treatment with 100 nM docetaxel [PubChem=148124].
+A2M
+CCN1
+CDH1
+EGFL7
+EGR1
+FXYD3
+GALNT3
+ITGB2
+MST1L
+MST1R
+NCS1
+PPP1R3F
+SCD
+SPRY1
+TAT
+TGFBR3
+VCAN
+ZNF232

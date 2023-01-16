@@ -1,0 +1,7 @@
+ALONSO_METASTASIS_EMT_DN
+> EMT (epithelial-mesenchymal transition) genes down-regulated genes in melanoma tumous that developed metastatic disease compared to primary melanoma that did not.
+CDH10
+EDN2
+PAPPA
+PCDH9
+WNT2
