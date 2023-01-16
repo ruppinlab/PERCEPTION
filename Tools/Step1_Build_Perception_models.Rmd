@@ -27,6 +27,7 @@ approved_drugs_model=readRDS('Data/FDA_approved_drugs_models.RDS')
 ```{r}
 # DOI stands for Drugs of interest; PERCEPTION will be run on these drugs; For each drug, there will be a seperate model
 DOI=names(approved_drugs_model)[1:2]
+#@Sumit - The above run is for two drugs. It takes 1 minute or so to run. If you use all 44 - this may take 15-20 mins. 
 # What cancer type the PERCEPTION will be trained on?; PanCan stands for Pan-cancer.
 cancerType='PanCan'
 # What features are we using?
