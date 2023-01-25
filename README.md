@@ -12,12 +12,12 @@ Because the data files are large and because journals require a frozen snapshot 
 To reproduce the results one must clone the GitHub repository and download the files from the Zenodo repository into a common directory on a computer running Linux or MacOS. We have tested the following
 instructions on one computer of each type. 
 
-Please perform the following steps to reproduce the main Figures from the manuscript:<br>
+<b>Please perform the following steps to reproduce the main Figures from the manuscript:</b><br>
 <b>Step 1:</b> Clone/Download this repository using the command 
 ```
 git clone https://github.com/ruppinlab/SCPO_submission
 ```
-This git clone command should create a directory called SCPO_submission that contains this README.md file and two subdirectories called Tools and Figures
+This git clone command should create a directory called SCPO_submission that contains this README.md file and two subdirectories called Tools and Figures.
 The Tools subdirectory contains the .RmD files to be run.
 The Figures subdirectory contains the Figures. 
 
@@ -28,8 +28,8 @@ The Figures subdirectory contains the Figures.
      cp * ../Figures_expected
      cd ..
 ```
-These commands copy the figures provided into a new folde called Figures_expected, so that if you run the Figue generating commands
-and thereby replace the Files in the Figures subdirectory, you can subsequently compare the newly generated fiels in Figures
+These commands copy the figures provided into a new folde called Figures_expected, so that if you run the Figure generating commands
+and thereby replace the Files in the Figures subdirectory, you can subsequently compare the newly generated files in Figures
 to the expected files in Figures_expected.
 
 <b>Step 3:</b> Run
@@ -66,11 +66,12 @@ The filenames are chosen so that  "StepN" represents the order of the results ar
 <b>Step 10</b> (Optional, open-ended): Using whatever criteria you wish compare the newly generated figires in the Figures subdirectory to the manuscript figures
     in the Figures_expected subdirectory
 
-Notes on the structure of repository:
+<b>Notes on the structure of repository:</b>
 1. Each script aims (Except Step0) to reproduce a figure from either main text or supplementary. 
 2. Every script is self-contained.
 3. Scripts could be run in any order necessary.
 4. Scripts starting with "step0" provides the necessary functions to run the rest of the scripts and are accordingly called in the beginning of each scripts.
+5. "Step1" is essential to build the PERCEPTION model. By default, this step uses the pan-cancer to build the response model for 44 drugs. However, users can modify this script to change the ‘cancer type’ to build the model for individual cancer types and also can run the PERCEPTION model for specific drugs. However, we found that the pan-cancer model shows better performances than the model built based on individual cancer types.
 
 Scripts to expect from Github repo: A folder name "Tools" comprising following files: step0A_functions_needed.Rmd, step0B_functions_needed, Step2_Figure1, Step3_Figure3, Step5_Figure5_and_Extended_Figure9_10, Step6_ExtendedFigure4-6, Step7_ExtendedFigure1
 
