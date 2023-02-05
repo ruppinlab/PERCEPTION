@@ -12,7 +12,7 @@ Because the data files are large and because journals require a frozen snapshot 
 To reproduce the results one must clone the GitHub repository and download the files from the Zenodo repository into a common directory on a computer running Linux or MacOS. We have tested the following
 instructions on one computer of each type. 
 
-<b>Please perform the following steps to reproduce the main Figures from the manuscript:</b><br>
+<h2><b>Please perform the following steps to reproduce the main Figures from the manuscript:</b></h2><br>
 <b>Step 1:</b> Clone/Download this repository using the command 
 ```
 git clone https://github.com/ruppinlab/SCPO_submission
@@ -77,7 +77,7 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 
 Files to get from zenodo: A single repository name "Data" comprising following files: PRJNA591860_sample_cell_names.RDS, PRJNA591860.RDS, Supp_COhen_IdoAmit_etal.zip, TableS5 copy.csv, Suppl_table_processed_drugresponse.xlsx, Predicted_viability_ScreenNishanthApr17.RDS, summary_combAUC.tsv, summary_AUC.tsv, TableS5.csv, PRJNA591860_patient_level_killing.RDS, Ruppin120321.xlsx, subClone_id_PRJNA591860.RDS, Maynard_Supp2_Demo.xlsx, lung_killing_n_abundance_clone_keyDrugs.RDS, carfilzomib_lenalidomide_model_bulk_rf.RDS, carfilzomib_lenalidomide_Bulk_models_list.RDS, carfilzomib_lenalidomide_model.RDS, genes_across_scRNA_datasets_ofInterest.RDS, genesUsed_toBuild.RDS, model_performances.RDS, EGFR_WT_signature_PDC.csv, EGFR_WT_signature.csv, lung_tSNE.txt, Response_model_nutlin3.RDS, FDA_approved_drugs_models.RDS, DepMapv12.RDS, Responde_models_usedin_PRJNA591860_lung.RDS
 
-<h3><b>How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h3><br>
+<h2><b>How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
 To run the PERCEPTION on the new clinical trial dataset, please use <b>Tools/Step_N.Rmd</b>. 
 
 This script identifies the major cancer cell clusters in the patient's tumor using their sc-expression (transcriptional clone). By computing the mean expression of each transcriptional clone and providing it as an input to the drug response model, this script predicts the drug response of each transcriptional clone separately. Considering that the most resistant clone to the drug will likely get selected by the treatment, this script predicts the overall patient’s response as the predicted response of the most resistant clone.
