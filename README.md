@@ -72,7 +72,7 @@ The filenames are chosen so that  "StepN" represents the order of the results ar
 
 Scripts to expect from Github repo: A folder name "Tools" comprising following files: step0A_functions_needed.Rmd, step0B_functions_needed, Step2_Figure1, Step3_Figure3, Step5_Figure5_and_Extended_Figure9_10, Step6_ExtendedFigure4-6, Step7_ExtendedFigure1
 
-Files to get from zenodo: A single repository name "Data" comprising following files: PRJNA591860_sample_cell_names.RDS, PRJNA591860.RDS, Supp_COhen_IdoAmit_etal.zip, TableS5 copy.csv, Suppl_table_processed_drugresponse.xlsx, Predicted_viability_ScreenNishanthApr17.RDS, summary_combAUC.tsv, summary_AUC.tsv, TableS5.csv, PRJNA591860_patient_level_killing.RDS, Ruppin120321.xlsx, subClone_id_PRJNA591860.RDS, Maynard_Supp2_Demo.xlsx, lung_killing_n_abundance_clone_keyDrugs.RDS, carfilzomib_lenalidomide_model_bulk_rf.RDS, carfilzomib_lenalidomide_Bulk_models_list.RDS, carfilzomib_lenalidomide_model.RDS, genes_across_scRNA_datasets_ofInterest.RDS, genesUsed_toBuild.RDS, model_performances.RDS, EGFR_WT_signature_PDC.csv, EGFR_WT_signature.csv, lung_tSNE.txt, Response_model_nutlin3.RDS, FDA_approved_drugs_models.RDS, DepMapv12.RDS, Responde_models_usedin_PRJNA591860_lung.RDS
+<b>Files to get from zenodo:</b> A single repository name "Data" comprising following files: PRJNA591860_sample_cell_names.RDS, PRJNA591860.RDS, Supp_COhen_IdoAmit_etal.zip, TableS5 copy.csv, Suppl_table_processed_drugresponse.xlsx, Predicted_viability_ScreenNishanthApr17.RDS, summary_combAUC.tsv, summary_AUC.tsv, TableS5.csv, PRJNA591860_patient_level_killing.RDS, Ruppin120321.xlsx, subClone_id_PRJNA591860.RDS, Maynard_Supp2_Demo.xlsx, lung_killing_n_abundance_clone_keyDrugs.RDS, carfilzomib_lenalidomide_model_bulk_rf.RDS, carfilzomib_lenalidomide_Bulk_models_list.RDS, carfilzomib_lenalidomide_model.RDS, genes_across_scRNA_datasets_ofInterest.RDS, genesUsed_toBuild.RDS, model_performances.RDS, EGFR_WT_signature_PDC.csv, EGFR_WT_signature.csv, lung_tSNE.txt, Response_model_nutlin3.RDS, FDA_approved_drugs_models.RDS, DepMapv12.RDS, Responde_models_usedin_PRJNA591860_lung.RDS
 
 <h2><b>How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
 To run the PERCEPTION on the new clinical trial dataset, please use <b>Tools/Step_N.Rmd</b>. 
@@ -87,6 +87,6 @@ We have tested this code for a demo dataset; the authors should use this example
 <h4><i>How to build the model and run the code for specific drugs?</i></h4>
 The Step2 of this code (Step_N.Rmd) demonstrated how the users could use it to build the response model for specific drugs. We have used the example of two drugs, dabrafenib and erlotinib. The users could select any combination of drugs from the list of 44 drugs to build their own response model. We have described it within the code.
 <br><br>
-Contact: Sanju Sinha (sanju@terpmail.umd.edu) 
+<b>Contact:</b> Sanju Sinha (sanju@terpmail.umd.edu) 
 <br>
 Cancer Data Science Laboratory (CDSL), National Cancer Institute (NCI), National Institutes of Health (NIH), Bethesda, Maryland, USA
