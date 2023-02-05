@@ -84,10 +84,10 @@ This script identifies the major cancer cell clusters in the patient's tumor usi
 
 The two main steps are Step1 and Step2 in this script, where attention is needed. In Step1 (lines 32-38), the users need to upload their own files; in Step2 (line 50), the users need to provide the name of their drug of interest for which they want to build the PERCEPTION model and predict the treatment response.
 
-<h4><i>How to generate the input files?</i></h4><br>
+<h4><i>How to generate the input files for new dataset?</i></h4>
 We have tested this code for a demo dataset; the authors should use this example to format their input files. In Step1 (lines 32-38), the example input files are provided. The authors should follow these file types to build their own datasets. Basically, three input files are needed as input (i) single-cell gene expression matrix from patients, (ii) cell names in each patient, and (iii) patient demographics, including clinical response data.
 
-<i>How to build the model and run the code for specific drugs?</i><br>
+<h4><i>How to build the model and run the code for specific drugs?</i></h4>
 The Step2 of this code demonstrated how the users could use it to build the response model for specific drugs. We have used the example of two drugs, dabrafenib and erlotinib. The users could select any combination of drugs from the list of 44 drugs to build their own response model. We have described it within the code.
 
 
