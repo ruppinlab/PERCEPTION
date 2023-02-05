@@ -90,4 +90,6 @@ We have tested this code for a demo dataset; the authors should use this example
 <h4><i>How to build the model and run the code for specific drugs?</i></h4>
 The Step2 of this code demonstrated how the users could use it to build the response model for specific drugs. We have used the example of two drugs, dabrafenib and erlotinib. The users could select any combination of drugs from the list of 44 drugs to build their own response model. We have described it within the code.
 <br><br>
-Contact: Sanju Sinha (sanju@terpmail.umd.edu)
+Contact: Sanju Sinha (sanju@terpmail.umd.edu) 
+<br>
+Cancer Data Science Laboratory (CDSL), National Cancer Institute (NCI), National Institutes of Health (NIH), Bethesda, Maryland, USA
