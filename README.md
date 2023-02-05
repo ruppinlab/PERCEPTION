@@ -2,7 +2,6 @@
 We build a precision oncology computational approach capitalizes on recently published matched bulk and single-cell (SC) transcriptome profiles of large-scale cell-line drug screens to build treatment response models from patients' SC tumor transcriptomics. The general objective of this project is to utilize single-cell omics from patients tumor to predict response and resistance. The following figure describe the pipeline of PERCEPTION and its application.
 ![PERCEPTION pipeline_new](https://user-images.githubusercontent.com/26137763/216801441-22f84b2f-425d-4b45-80d7-47ab2b30ef04.png)
 
-![PERCEPTION pipeline](https://user-images.githubusercontent.com/26137763/214628362-5edae20c-811c-4bb8-b4ed-926feabe847d.png)
 This README.md file is part of the repository to replicate the results/Figures of the manuscript entitled<br>
 "Predicting patient treatment response and resistance via single-cell transcriptomics of their tumors". 
 
