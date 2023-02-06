@@ -342,13 +342,11 @@ RD_drug2 = c(treatment_RD_Killing_each_drug[2][,], rep(NA, max_length_drug1 - le
 PD_drug2 = c(treatment_PD_Killing_each_drug[2][,], rep(NA, max_length_drug1 - length(treatment_PD_Killing_each_drug[2][,])))
 plot_data_drug2 <- data.frame(RD_drug2, PD_drug2)
 
-#png(plot_data_drug1, filename = 'Figures/Fig5.png')
 boxplot(plot_data_drug1, col = c("orange","red"), names = c("RD", "PD"), main="dabrafenib",  xlab = "Treatment Response", ylab = "Predicted Viability")
 stripchart(plot_data_drug1, vertical = TRUE, pch = 19, add = TRUE, col = "blue")
 dev.copy(png,filename="Figures/Fig5.png")
 dev.off ()
 
-#png(plot_data_drug2, filename = 'Figures/Fig6.png')
 boxplot(plot_data_drug2, col = c("orange","red"), names = c("RD", "PD"), main="erlotinib",  xlab = "Treatment Response", ylab = "Predicted Viability")
 stripchart(plot_data_drug2, vertical = TRUE, pch = 1, add = TRUE, col = "blue")
 dev.copy(png,filename="Figures/Fig6.png")
