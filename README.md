@@ -1,6 +1,6 @@
 # PERsonalized single-Cell Expression-based Planning for Treatments In ONcology (PERCEPTION)
 We build a precision oncology computational approach capitalizes on recently published matched bulk and single-cell (SC) transcriptome profiles of large-scale cell-line drug screens to build treatment response models from patients' SC tumor transcriptomics. The general objective of this project is to utilize single-cell omics from patients tumor to predict response and resistance. The following figure describe the pipeline of PERCEPTION and its application.
-![PERCEPTION pipeline_new](https://user-images.githubusercontent.com/26137763/216863898-f6152e5a-7d6e-4485-9a65-e1b73a691ac5.png)
+![PERCEPTION pipeline_new](https://user-images.githubusercontent.com/26137763/216864419-a8a35147-ce34-43bd-a360-38d9ac07d4ac.png)
 
 The code to generate the Figures is in R and is presented as a set of R markdown(.Rmd) files to be run in Rstudio. 
 The data files are in a mixture of RDS, csv, tsv, and other formats.
