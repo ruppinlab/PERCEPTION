@@ -8,7 +8,7 @@ html_notebook: default
 <!-- Predicting the development of resistance to tyrosine kinase inhibitors (TKIs) in lung cancer patients. -->
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/sinhas8/SCPO_submission/'
+working_directory='/Users/sinhas8/project_SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 
@@ -358,7 +358,7 @@ killing_eachClone_scaled_list=split(killing_eachClone_scaled[,-1],
 # Rule: Most resistant clone best reflects the clinical response
 Killing_patient_level=sapply(killing_eachClone_scaled_list, colMax)
 
-# Rule: Most resistant clone best reflects the clinical response
+# Rule: Mean clone best reflects the clinical response
 # Killing_patient_level=sapply(killing_eachClone_scaled_list, colMeans)
 Killing_patient_level=data.frame(Killing_patient_level)
 ```
@@ -376,8 +376,8 @@ Killing_patient_level_ann_biopsy_timepoint=cbind(Killing_patient_level,
 Maynard_Supp2_Demo[match(rownames(Killing_patient_level),
                          Maynard_Supp2_Demo$`Sample Name`),])
 ```
-<!-- Hypothesis: Whether the timepoint of tissue collection is positively correlated vs pred viab -->
-<!-- Step 1: Compute each drug Treatnaive killing -->
+<!-- Hypothesis: Whether the Timepoint of tissue collection is positively correlated vs pred viab -->
+<!-- Step 1: Compute each drug Treat-naive killing -->
 ```{r}
 treatment_naive_samples=Killing_patient_level_ann_biopsy_timepoint$`Treatement Timepoint`=='TN'
 significant_drugs_names=colnames(Killing_patient_level)
@@ -385,7 +385,7 @@ treatment_naive_Killing_each_drug=Killing_patient_level_ann_biopsy_timepoint[tre
 treatment_naive_Killing_each_drug_mean=colMeans(treatment_naive_Killing_each_drug)
 treatment_naive_Killing_each_drug_mean
 ```
-<!-- add the needed basline to the dataframe-->
+<!-- Add the needed basline to the dataframe-->
 ```{r}
 table(Killing_patient_level_ann_biopsy_timepoint$Treatment)
 sort(unique(Killing_patient_level_ann_biopsy_timepoint$`Treatement Timepoint`))
@@ -777,12 +777,4 @@ ggsave(panel_C,
          'Figures/Figure7C_onePatient.pdf',
        height = 4, width = 4)
 ```
-
-
-
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 

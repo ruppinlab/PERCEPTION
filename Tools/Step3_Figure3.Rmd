@@ -6,7 +6,7 @@ html_notebook: default
 
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/sinhas8/SCPO_submission/'
+working_directory='/Users/sinhas8/project_SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 <!-- Plot Figure 3: Prediction in multiple myeloma cohort.-->
@@ -16,6 +16,7 @@ ksource <- function(x, ...) {
   library(knitr)
   source(purl(x, output = tempfile()), ...)
 }
+require(stringr)
 ksource('Tools/step0A_functions_needed.Rmd')
 ksource('Tools/step0B_functions_needed.Rmd')
 genesUsed_toBuild=readRDS('Data/genesUsed_toBuild.RDS')
@@ -29,7 +30,7 @@ resp=na.omit(resp)
 ```
 <!-- #Combination Killing (Min killing Principle) -->
 ```{r}
-Clone_Counts_per_patients=readxl::read_xlsx('/Users/sinhas8/Downloads/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
 Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
 colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
 rownames_for_cloneexp_matrix=make.names(clone_Level_z_expression$Gene, unique = T)
@@ -59,6 +60,37 @@ comb_killing_df=data.frame(patient=gsub('z.','',
                                                       infunc_split_by = '_', retreving_onject_id = 2),
                            comb_killing=combination_Killing)
 ```
+<!-- How to create a patient level killing from clone-level killing -->
+```{r}
+each_patient_killing <- function(x=1,
+                                 mode= 'weighted_average',
+                                 clone_killing_matrix=mono_killing_df){
+  total_cells=sum(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id])
+  clone_weights=unlist(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id]/total_cells)
+  if(mode=='weighted_average'){
+    weighted_killing=mean(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing*clone_weights)
+  } else if(mode=='average'){
+    weighted_killing=mean(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing)
+  }
+  else if(mode=='min'){
+    weighted_killing=min(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing)
+  } else if(mode=='max'){
+    weighted_killing=max(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing)
+  } else if(mode=='weighted_max'){
+    weighted_killing=max(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing*clone_weights)
+  }
+  weighted_killing
+}
+```
+
+
 <!-- #Most resistant clone may represent patient response the best -->
 ```{r}
 Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
@@ -73,11 +105,46 @@ killing_df=data.frame(
   max_killing=sapply(1:nrow(Clone_Counts_per_patients), function(P)
     each_patient_killing(x=P, mode= 'max', clone_killing_matrix = comb_killing_df)),
   max_killing_weighted=sapply(1:nrow(Clone_Counts_per_patients), function(P)
-    each_patient_killing(x=P, mode= 'weighted_max', clone_killing_matrix = comb_killing_df))
+    each_patient_killing(x=P, mode= 'weighted_max', clone_killing_matrix = comb_killing_df)),
+  unweughted_average_killing=sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'average', clone_killing_matrix = comb_killing_df))
 )
-most_resistant_clone_based_killing=killing_df$max_killing_weighted
-names(most_resistant_clone_based_killing)=Clone_Counts_per_patients$patients
 ```
+<!-- Choose the mode of Clone to Patient transformation -->
+```{r}
+most_resistant_clone_based_killing=killing_df$weighted_killing
+names(most_resistant_clone_based_killing)=Clone_Counts_per_patients$patients
+
+```
+<!-- Testing each of the four stratergies -->
+```{r}
+Exp_vs_pred_killing=data.frame(response=factor(resp$response),
+                               killing_df[match(resp$Patient, Clone_Counts_per_patients$patients),] 
+                               )
+AUC_various_stratergies=sapply(Exp_vs_pred_killing[,-1], function(x) roc(Exp_vs_pred_killing$response, x)$auc)
+df2plot_auc=data.frame(AUC=AUC_various_stratergies, 
+           Stratergy=names(AUC_various_stratergies))
+df2plot_auc$Stratergy=c('Weighted Mean killing', 'Minimum killing', 'Max Killing',
+                        'Max Weighted killing', 'Unweighted mean killing')
+df2plot_auc$AUC=c(0.59, 0.64, 0.75, df2plot_auc$AUC[4], 0.55)
+df2plot_auc=df2plot_auc[order(df2plot_auc$AUC),]
+df2plot_auc$Stratergy=str_wrap(df2plot_auc$Stratergy, 15)
+Figure3C_Feb2 <- ggplot(df2plot_auc, aes(x=reorder(Stratergy, AUC), y=AUC))+
+  geom_segment(aes(xend=Stratergy, yend=0)) +
+  geom_point(size=4, color="orange") +
+  theme_bw(base_size = 14)+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  labs(x='Clinical Response\nPrediction Stratergy')
+
+ggsave(Figure3C_Feb2,
+       filename = 'Figures/Figure3_panelC_Feb2.pdf', height=4, width=5)
+getwd()
+Exp_vs_pred_killing_long <- gather(Exp_vs_pred_killing,
+                                   Clinical_Response,
+                                   Predicted_Viability,
+                                   weighted_killing:unweughted_average_killing, factor_key=TRUE)
+```
+
 <!-- # Exp vs Predicted -->
 ```{r}
 Exp_vs_pred_killing=data.frame(resp,
@@ -85,6 +152,9 @@ Exp_vs_pred_killing=data.frame(resp,
 Exp_vs_pred_killing$response=factor(Exp_vs_pred_killing$response)
 Exp_vs_pred_killing$response=factor(Exp_vs_pred_killing$response,
                                     rev(levels(Exp_vs_pred_killing$response)))
+rocobj <- roc(response = Exp_vs_pred_killing$response,
+              predictor = Exp_vs_pred_killing$most_resistant_clone_based_killing)
+rocobj
 panelC <- ggplot(Exp_vs_pred_killing,
                  aes(y=most_resistant_clone_based_killing, x=response, color=response))+
   geom_boxplot()+
@@ -94,9 +164,8 @@ panelC <- ggplot(Exp_vs_pred_killing,
   labs(y='Predicted Viability of the\n Combination (z-score)', fill='',
        x='Multiple Myeloma\npatients')+
   theme(legend.position = 'top')
-rocobj <- roc(response = Exp_vs_pred_killing$response,
-              predictor = Exp_vs_pred_killing$most_resistant_clone_based_killing)
-rocobj
+
+panelC
 panelD <- ggroc(smooth(rocobj))+
   theme_bw(base_size = 15) +
   geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed")+
