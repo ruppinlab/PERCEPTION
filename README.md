@@ -54,7 +54,7 @@ expected are listed near the bottom of this file.
 	Step6_ExtendedFigure4-6.Rmd  
 	Step7_ExtendedFigure1.Rmd
      
-you need to edit the file once manually to change a line near the top that currently reads: working_directory='/Users/sinhas8/SCPO_submission/' Replace the characters in single quotes with the full path to the repository SCPO_submission.
+you need to edit the file once manually to change a line near the top that currently reads: working_directory='/Users/mukherjees11/Documents/SCPO_submission/' Replace the characters in single quotes with the full path to the repository SCPO_submission.
  
 
 <b>Step 7:</b> From the SCPO directory open RStudio 
