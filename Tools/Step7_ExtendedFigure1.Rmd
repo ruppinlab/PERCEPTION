@@ -8,7 +8,7 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/mukherjees11/Documents/SCPO_submission'
+working_directory='/Users/mukherjees11/Documents/SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 <!-- Plot Figure 1D-E:  -->
