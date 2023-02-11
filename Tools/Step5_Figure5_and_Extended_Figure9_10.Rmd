@@ -484,7 +484,7 @@ killing_n_abundance_clone_keyDrugs=readRDS('Data/lung_killing_n_abundance_clone_
 clones_with_more_than_1points=killing_n_abundance_clone_keyDrugs$CloneID %in% 
   names(which(table(killing_n_abundance_clone_keyDrugs$CloneID)>1))
 killing_n_abundance_clone_keyDrugs=killing_n_abundance_clone_keyDrugs[clones_with_more_than_1points,]
-killing_n_abundance_clone$treatment_time=as.numeric(killing_n_abundance_clone$treatment_time)
+killing_n_abundance_clone_keyDrugs$treatment_time=as.numeric(killing_n_abundance_clone_keyDrug$treatment_time)
 mean_killing_each_clone=data.frame(aggregate(killing_n_abundance_clone_keyDrugs$respective_response ~
                                                killing_n_abundance_clone_keyDrugs$CloneID, FUN = mean))
 colnames(mean_killing_each_clone)=c('cloneID', 'mean_killing')
