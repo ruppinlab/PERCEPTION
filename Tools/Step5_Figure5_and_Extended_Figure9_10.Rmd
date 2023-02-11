@@ -8,7 +8,7 @@ html_notebook: default
 <!-- Predicting the development of resistance to tyrosine kinase inhibitors (TKIs) in lung cancer patients. -->
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/mukherjees11/Documents/SCPO_submission'
+working_directory='/Users/mukherjees11/Documents/SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 
