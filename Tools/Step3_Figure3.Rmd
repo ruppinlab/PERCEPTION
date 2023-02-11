@@ -4,7 +4,7 @@ output: html_notebook
 ---
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/mukherjees11/Documents/SCPO_submission'
+working_directory='/Users/mukherjees11/Documents/SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 <!-- Plot Figure 3: Prediction in multiple myeloma cohort.-->
