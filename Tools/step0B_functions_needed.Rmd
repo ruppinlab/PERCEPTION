@@ -1,0 +1,614 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+<!-- Below functions are needed to build, train, and test PERCEPTION model in cell lines & patients -->
+# This could be divided into two steps: 
+# 1. Initial training in cell lines using bulk-expression and drug response.
+# 2. Hyperparameter tuning using sc-expression in cell lines
+<!-- Step 1A: Identify genes with bulk-expression are significantly correlated with drugs response -->
+```{r}
+# This function takes, drugname, cancer type, all gene features, response measure (AUC vs viability), which cancer type cell lines to exclude from analysis.
+feature_ranking_bulk<-function(infunc_drugName=DOI[1],
+                               infunc_cancerType='PanCan',
+                               infunc_GOI=genesUsed_toBuild,
+                               resp_measure_mode='AUC',
+                               exclude_cancer='lung'){
+  # Choose the resp matrix
+  if(resp_measure_mode=='AUC'){
+    # Mode 1: All HTS
+    # infun_response_matrix=onTarget$secondary_prism
+    # infunc_response=infun_response_matrix[
+    #   onTarget$drugCategory$broad_id_trimmed[match(infunc_drugName, onTarget$drugCategory$name)],]
+    # Mode 2: Priortize MTS
+    infun_response_matrix=onTarget$secondary_prism
+    infunc_drugName_id=which(stripall2match(onTarget$secondary_screen_drugAnnotation$CommonName)==infunc_drugName)
+    infunc_response=onTarget$secondary_prism[infunc_drugName_id,]
+    
+    # is.matrix(infunc_response) - denotes if there exists a matrix with multiple screen
+    # If there are multiple measures of response;
+    if(is.matrix(infunc_response)){
+      # Choose screen of interest
+      # Rule: Priority, MTS over HTS; MTS with least number of NAs
+      infunc_drugName_screenID=onTarget$secondary_screen_drugAnnotation$Screen_id[infunc_drugName_id]
+      infunc_drugName_screenID_trimmed=substring(infunc_drugName_screenID, 0, 3)
+      # if single MTS vs single HTS
+      if(sum(infunc_drugName_screenID_trimmed=='HTS')==1 &
+         sum(infunc_drugName_screenID_trimmed=='MTS')==1){
+        infunc_response=infunc_response[infunc_drugName_screenID_trimmed=='MTS',]
+        # if HTS vs multiple MTS
+      } else if(sum(infunc_drugName_screenID_trimmed=='HTS')==1 &
+                sum(infunc_drugName_screenID_trimmed=='MTS')>1){
+        infunc_response=infunc_response[infunc_drugName_screenID_trimmed=='MTS',]
+        infunc_response[count_row_NAs(infunc_response)==min(count_row_NAs(infunc_response)),]
+        # If above the above is still a tie btw MTS screens; Take a mean
+        if(is.matrix(infunc_response)){ infunc_response=rowMeans(infunc_response, na.rm = T) }
+        # if multiple MTS are competing
+      } else if(sum(infunc_drugName_screenID_trimmed=='HTS')==0 &
+                sum(infunc_drugName_screenID_trimmed=='MTS')>1){
+        infunc_response=infunc_response[
+          count_row_NAs(infunc_response)==min(count_row_NAs(infunc_response)),]
+        # If above the above is still a tie btw MTS screens; Take a mean
+      }
+      if(is.matrix(infunc_response)){ infunc_response=colMeans(infunc_response, na.rm = T) }
+    }
+  } else if(resp_measure_mode=='IC50') {
+    # infun_response_matrix=alShabi_drugs_ic50
+    # use GDSC to train instead of PRISM
+    infun_response_matrix=gdsc1_DOI_IC50
+    infunc_response=infun_response_matrix[match(infunc_drugName,
+                                                rownames(infun_response_matrix)),]
+  } else if(resp_measure_mode=='VFC') {
+    # There are curr (12th Feb), there are three drug concentrations 2 use
+    # fda_drugs_VFC_atCaverage_5days
+    # fda_drugs_VFC_atCMin_5Days
+    # fda_drugs_VFC_atCMax
+    
+    infun_response_matrix=fda_drugs_VFC_atCaverage_5days
+    infunc_response=infun_response_matrix[match(infunc_drugName,
+                                                rownames(infun_response_matrix)),]
+  }
+  # Contrasting to the previous, we want to remove 
+  # the cell lines which are present in scRNA-seq
+  if(infunc_cancerType=='PanCan'){
+    CellLines_with_drugResponse=names(infunc_response)
+    CellLines_with_bulkExp=colnames(onTarget$expression_rnorm)
+    CellLines_with_singleCellExp=colnames(onTarget$scRNA_complete)
+    # Exclude 'CellLinee2exclude' cell lines with scRNA-seq
+    CellLinee2exclude=onTarget$annotation_20Q4$DepMap_ID[
+      grep(exclude_cancer,onTarget$annotation_20Q4$lineage)]
+    if(exclude_cancer=='PanCan'){
+      CellLinee2exclude=intersect(CellLines_with_singleCellExp,
+                                  onTarget$annotation_20Q4$DepMap_ID)
+    }
+    cellLines2remove=intersect(CellLinee2exclude,CellLines_with_singleCellExp)
+    
+    common_cellLines=setdiff(intersect(CellLines_with_drugResponse, CellLines_with_bulkExp),
+                             cellLines2remove)
+    print(length(common_cellLines))
+  } else{
+    # infunc_cancerType='lung'
+    CellLines_lung=onTarget$annotation_20Q4$DepMap_ID[
+      grep(infunc_cancerType,onTarget$annotation_20Q4$lineage)]
+    CellLines_with_drugResponse=names(infunc_response)
+    CellLines_with_bulkExp=colnames(onTarget$expression_rnorm)
+    CellLines_with_singleCellExp=colnames(onTarget$scRNA_complete)
+    length(CellLines_with_singleCellExp)
+    
+    common_cellLines=setdiff(Reduce(intersect, list(CellLines_with_drugResponse,
+                                            CellLines_with_bulkExp,
+                                            CellLines_lung)),
+                             colnames(onTarget$scRNA_complete))
+    print(length(common_cellLines))
+  }
+  
+  infunc_response_matchedSubset=unlist(infunc_response[common_cellLines])
+  # Pearson correlation is computed
+  # Spearman cor can be compute using providing a ranked vector
+  cor_profile=t(apply(onTarget$expression_rnorm[infunc_GOI,common_cellLines], 1, function(x) 
+    unlist(cor.test_trimmed_v0(x, infunc_response_matchedSubset, method='p')) ))
+  cor_profile=cor_profile[order(abs(cor_profile[,2]), decreasing = T),]
+  return(cor_profile)
+}
+
+# Function to run a parallel version of "feature_ranking_bulk" function.
+run_parallel_feature_ranking_bulk<-function(id_cancerType=cancerType,
+                                            infunc_DrugsToUse=DOI,
+                                            resp_measure_mode='AUC',
+                                            infunc_exclude_cancer='lung',
+                                            infunc_GOI=genesUsed_toBuild){
+  infun_AUC_mode=resp_measure_mode
+  featuresRank_fromBulk=mclapply(1:length(infunc_DrugsToUse), function(x)
+    err_handle(feature_ranking_bulk(infunc_drugName=infunc_DrugsToUse[x],
+                                    infunc_cancerType=id_cancerType,
+                                    resp_measure_mode = infun_AUC_mode,
+                                    exclude_cancer=infunc_exclude_cancer,
+                                    infunc_GOI=genesUsed_toBuild)), mc.cores = 4
+  )
+  featuresRank_fromBulk
+}
+```
+<!-- Step 1B: Identify genes with bulk-expression are significantly correlated with drugs response -->
+```{r}
+build_on_BULK_v2<-function(infunc_drugName=DOI[1],
+                        infunc_cancerType='PanCan',
+                        infunc_features=featuersNames_bulk_PanCan[[1]],
+                        single_best=featuersNames_bulk_PanCan[[1]][1],
+                        k_features=100,
+                        mode='AUC',
+                        infunc_alpha=1,
+                        model_type='glmnet',
+                        exclude_cancer='PanCan',
+                        alpha_gradient=0.05,
+                        lambda_gradient=20,
+                        cv_method='cv'){
+  # which measure mode
+  infunc_response=get_response_matrix(infunc_mode=mode,
+                                      infunc_drugName = infunc_drugName,
+                                      exclude_cancer=exclude_cancer)
+  # which cell lines 2 use during training
+  common_cellLines=get_cellLine_list(infunc_cancerType=infunc_cancerType,
+                                     infunc_drugName = infunc_drugName,
+                                     exclude_cancer=exclude_cancer,
+                                     infunc_response = infunc_response,
+                                     force_add_cellLines = T)[[1]]
+  # which cell lines 2 exclude during training
+  cellLines2remove=get_cellLine_list(infunc_cancerType=infunc_cancerType,
+                                     infunc_drugName = infunc_drugName,
+                                     exclude_cancer=exclude_cancer,
+                                     infunc_response = infunc_response)[[2]]
+  # whether consistent rnorm
+  if(nrow(onTarget$expression_rnorm)!=nrow(onTarget$scRNA_subset_rnorm)){return('Mismatch in initial features\n
+                                               rNorm sc vs bulk')}
+  ############
+  # Train Data:: on bulk
+  ##########
+  Train_infunc_features_id=head(na.omit(match(infunc_features,
+                                             rownames(onTarget$expression_rnorm))), k_features)
+  Train_features=t(onTarget$expression_rnorm[Train_infunc_features_id, common_cellLines])
+  Train_Target_Label=infunc_response[common_cellLines]
+  Train_features=Train_features[which(!is.na(Train_Target_Label)),]
+  Train_Target_Label=unlist(Train_Target_Label[which(!is.na(Train_Target_Label))])
+  Train_features=Train_features[which(Train_Target_Label<10^100),]
+  Train_Target_Label=unlist(Train_Target_Label[which(Train_Target_Label<10^100)])
+  ############
+  # Test Data 1:: on pseudo-Bulk
+  ##########
+  cell_ID_for_test_data1=Reduce(intersect,list(cellLines2remove,
+                                               colnames(onTarget$scRNA_subset_rnorm),
+                                               names(infunc_response) ))
+  Test_infunc_features_id=head(na.omit(match(infunc_features,
+                                             rownames(onTarget$scRNA_subset_rnorm))), k_features)
+  Test_features=t(onTarget$scRNA_subset_rnorm[Test_infunc_features_id, cell_ID_for_test_data1])
+  Test_Target_Label=unlist(infunc_response)[cell_ID_for_test_data1]
+  Test_features=Test_features[which(!is.na(Test_Target_Label)),]
+  Test_Target_Label=unlist(Test_Target_Label[which(!is.na(Test_Target_Label))])
+  ############
+  # Test Data 2:: on bulk
+  ##########
+  cell_ID_for_test_data2=Reduce(intersect,list(cellLines2remove,
+                                               colnames(onTarget$expression_rnorm),
+                                               names(infunc_response) ))
+  Test2_infunc_features_id=head(na.omit(match(infunc_features,
+                                            rownames(onTarget$expression_rnorm))),
+                               k_features)
+  Test2_features=t(onTarget$expression_rnorm[Test2_infunc_features_id,cell_ID_for_test_data2])
+  Test2_Target_Label=unlist(infunc_response)[cell_ID_for_test_data2]
+  Test2_features=Test2_features[which(!is.na(Test2_Target_Label)),]
+  Test2_Target_Label=unlist(Test2_Target_Label[which(!is.na(Test2_Target_Label))])
+  ############
+  # Test Data 3:: on sc-RNA-seq (All cancer)
+  ##########
+  cells_ID_for_test_data3=onTarget$metadata_CPM_scRNA$NAME[
+    onTarget$metadata_CPM_scRNA$DepMap_ID %in% Reduce(intersect,list(cellLines2remove,
+                                               names(infunc_response)))]
+  cellLine_ID_for_test_data3=unique(
+    onTarget$metadata_CPM_scRNA$DepMap_ID[onTarget$metadata_CPM_scRNA$DepMap_ID %in% Reduce(intersect,list(cellLines2remove,names(infunc_response)))])
+  Test3_infunc_features_id=head(na.omit(match(infunc_features,
+                                            rownames(onTarget$CPM_scRNA_CCLE_rnorm))),
+                               k_features)
+  Test3_features=t(onTarget$CPM_scRNA_CCLE_rnorm[Test3_infunc_features_id,
+                                                 cells_ID_for_test_data3])
+  Test3_Target_Label=unlist(infunc_response)[as.character(cellLine_ID_for_test_data3)]
+  ##########
+  # ML Model
+  ##########
+  # Non-Linear random Forest based ML model
+  # Core Implementation of ATLANTIS (Method Summary: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5667678/)
+  # Github: https://github.com/cancerdatasci/atlantis/tree/master/atlantis
+  # Note 1: All haematopeotic stem cells are removed from cell lines set used
+  # Note 2: Instead of multiple RF runs; ranking features first and providing the top ones
+  # for a lower time complexity
+  # Note 3: Conditional Inference trees are *not* used,
+  # as all features (exp) are continous (no Mut data or categorical)
+  # Note 4: Out-of-bag R2 is used as the goodness-of-fit metric
+  # Note 5: Non-Goldilock hyperparameters are not optimized
+  # Note 6: Nodesize is default and hasn't been tuned (space for improvement)
+  set.seed(1)
+  tc <- trainControl(method=cv_method,number=3)
+  # tc <- trainControl(method='oob')
+  # mtry is number of features provided to each split; Tuned here from 10 instances
+  if(model_type=='rf'){
+  tunegrid <- expand.grid(.mtry=ncol(Train_features)/seq(10, 1, -3))
+  cv.out <- train(Train_Target_Label~., # Train_Target_Label is a function of rest of the variables
+                  data = data.frame(Train_Target_Label, Train_features), # Use the train data frame as the training data
+                  method = 'rf', # Use the 'random forest' algorithm
+                  trControl = tc,
+                  tunegrid=tunegrid,
+                  ntree=500 # Finding Plateue w.r.t this paramter could help sig improve time complexity
+                  )
+  # GLmnet implementation
+  } else if(model_type=='glmnet'){
+    tunegrid <- expand.grid(alpha = seq(0,1, alpha_gradient),
+                          lambda = seq(0.0001, 1, length = lambda_gradient))
+    cv.out <- train(Train_Target_Label~., # Train_Target_Label is a function of rest of the variables
+                  data = data.frame(Train_Target_Label, Train_features), # Use the train data frame as the training data
+                  method = 'glmnet',
+                  trControl = tc,
+                  metric="RMSE",
+                  tuneGrid=tunegrid,
+                  savePredictions="final")
+  }
+  ############
+  # Performance
+  ##########
+  # Best performance while tunig parameters
+  model_performance_cv=max(sqrt(cv.out$results$Rsquared), na.rm = T)
+  # Test on bulk (test 1)
+  Test_pred_bulk=predict(cv.out, Test2_features)
+  performance_in_bulk=unlist(cor.test(Test_pred_bulk,
+                                          Test2_Target_Label, method='p')[c(3, 4)])
+  # Test on pseudo-Bulk (test 2)
+  Test_pred_Msc=predict(cv.out, newdata = Test_features)
+  performance_in_pseudo_bulk=unlist(cor.test(Test_pred_Msc,
+                                         Test_Target_Label, method='p')[c(3, 4)])
+  # Test on scRNA-seq:: (test 3)
+  Test_pred_sc=predict(cv.out, newdata = Test3_features)
+  cells_mapping2_cellLine=onTarget$metadata_CPM_scRNA$DepMap_ID[
+    onTarget$metadata_CPM_scRNA$NAME %in% names(Test_pred_sc)]
+  Test_pred_sc_mean_byCellLine=aggregate(Test_pred_sc ~cells_mapping2_cellLine, 
+                                         data.frame(Test_pred_sc, cells_mapping2_cellLine),
+                                         function(x) mean(x, na.rm=T))
+  performance_in_scRNA=unlist(cor.test(Test_pred_sc_mean_byCellLine$Test_pred_sc,
+                                         Test3_Target_Label[
+                                           as.character(
+                                             Test_pred_sc_mean_byCellLine$cells_mapping2_cellLine)], method='p')[c(3, 4)])
+  # To reutrn the predictions
+  predVSgroundTruth=list(
+    # scRNA-seq 
+    pred_gt_scRNA=data.frame(Test_pred_sc=Test_pred_sc_mean_byCellLine$Test_pred_sc,
+                            Observed=Test3_Target_Label[as.character(Test_pred_sc_mean_byCellLine$cells_mapping2_cellLine)]),
+    # bulk-seq
+    pred_gt_bulk=data.frame(Test_pred_Msc=Test_pred_bulk,
+                            Observed=Test2_Target_Label),
+    # for pseudo-bulk-seq test
+    pred_gt_mscRNA=data.frame(Test_pred_Msc=Test_pred_Msc,
+                              Observed=Test_Target_Label)
+    )
+  
+  ############
+  # object 2 return
+  ##########
+  toreturn=list(model=cv.out,
+                single_best=single_best,
+                model_performance_during_cv=model_performance_cv,
+                performance_in_bulk=performance_in_bulk,
+                performance_in_pseudo_bulk=performance_in_pseudo_bulk,
+                performance_in_scRNA=performance_in_scRNA,
+                predVSgroundTruth=predVSgroundTruth)
+  toreturn
+}
+
+# Running the above function in parallel
+build_biomarker_step2_bulk<-function(features_fromBulk=featuers_bulk_all_cancer_type,
+                                     id_cancerType=cancerType,
+                                     infunc_drugsList=DOI,
+                                     resp_measure_mode='AUC',
+                                     infunc_k_features,
+                                     infunc_alpha=1,
+                                     infunc_model_type='glmnet',
+                                     infunc_exclude_cancer){
+  infunc_drugsList=as.character(infunc_drugsList)
+  model_for=lapply(1:length(infunc_drugsList),
+                     function(x) 
+                       err_handle(build_on_BULK_v2(infunc_drugName=infunc_drugsList[x],
+                                                infunc_cancerType=id_cancerType,
+                                                infunc_features=rownames(features_fromBulk[[x]]),
+                                                single_best=features_fromBulk[[x]][1,],
+                                                k_features=infunc_k_features,
+                                                mode=resp_measure_mode,
+                                                model_type=infunc_model_type,
+                                                exclude_cancer=infunc_exclude_cancer)))
+  model_for
+}
+
+# Outputs various performance measure using bulk, pseudo-bulk, single-cell during training and testing
+compare_performance <- function(model_for){
+infunc_compare_performance=list(model_perf_CV=do.call(rbind, lapply(model_for,
+                                                               function(x) err_handle(x[[3]]))),
+                           model_perf_test_bulk=do.call(rbind, lapply(model_for,
+                                                                 function(x) err_handle(x[[4]]))),
+                           model_perf_test_mean_scRNA=do.call(rbind, lapply(model_for,
+                                                                      function(x) err_handle(x[[5]]))),
+                           model_perf_test_actual_scRNA=do.call(rbind, lapply(model_for,
+                                                                      function(x) err_handle(x[[6]]))),
+                           model_perf_test_mean_allCancer=do.call(rbind, lapply(model_for,
+                                                                      function(x) err_handle(x[[7]])))
+                           )
+  # print('Number of Drugs passing a lenient Threshold of model performance')
+  print(sum(infunc_compare_performance[[1]][,1]>0.3, na.rm = T))  
+  print(sapply(infunc_compare_performance, function(x)
+    err_handle(sum(x[,2]>0.3, na.rm = T) )) )
+  print(sapply(infunc_compare_performance, function(x)
+    err_handle(mean(x[,2], na.rm = T) )) )
+  print(DOI[which(infunc_compare_performance$model_perf_test_actual_scRNA[,2]>0.3)])
+  
+  df2ret=lapply(infunc_compare_performance, function(x)
+    err_handle(which(x[,1]>0.3) ))[[4]]
+  sapply(infunc_compare_performance, function(x)
+    err_handle(mean(x[,2], na.rm = T) ))
+}
+```
+##################
+<!-- get Cell lines list and response matrix of a particular cancer type considering exclusions-->
+##################
+```{r}
+get_response_matrix <- function(infunc_mode=mode,infunc_drugName, exclude_cancer){
+  if(infunc_mode=='AUC'){
+    # Mode 1: All HTS
+    # Mode 2: Priortize MTS
+    infun_response_matrix=onTarget$secondary_prism
+    infunc_drugName_id=which(stripall2match(onTarget$secondary_screen_drugAnnotation$CommonName)==infunc_drugName)
+    infunc_response=onTarget$secondary_prism[infunc_drugName_id,]
+    # is.matrix(infunc_response) - denotes if there exists a matrix with multiple screen
+    # If there are multiple measures of response;
+    if(is.matrix(infunc_response)){
+      # Choose screen of interest
+      # Rule: Priority, MTS over HTS; MTS with least number of NAs
+      infunc_drugName_screenID=onTarget$secondary_screen_drugAnnotation$Screen_id[infunc_drugName_id]
+      infunc_drugName_screenID_trimmed=substring(infunc_drugName_screenID, 0, 3)
+      # if single MTS vs single HTS
+      if(sum(infunc_drugName_screenID_trimmed=='HTS')==1 &
+         sum(infunc_drugName_screenID_trimmed=='MTS')==1){
+        infunc_response=infunc_response[infunc_drugName_screenID_trimmed=='MTS',]
+        # if HTS vs multiple MTS
+      } else if(sum(infunc_drugName_screenID_trimmed=='HTS')==1 &
+                sum(infunc_drugName_screenID_trimmed=='MTS')>1){
+        infunc_response=infunc_response[infunc_drugName_screenID_trimmed=='MTS',]
+        infunc_response[count_row_NAs(infunc_response)==min(count_row_NAs(infunc_response)),]
+        # If above the above is still a tie btw MTS screens; Take a mean
+        if(is.matrix(infunc_response)){ infunc_response=rowMeans(infunc_response, na.rm = T) }
+        # if multiple MTS are competing
+      } else if(sum(infunc_drugName_screenID_trimmed=='HTS')==0 &
+                sum(infunc_drugName_screenID_trimmed=='MTS')>1){
+        infunc_response=infunc_response[
+          count_row_NAs(infunc_response)==min(count_row_NAs(infunc_response)),]
+        # If above the above is still a tie btw MTS screens; Take a mean
+      }
+      if(is.matrix(infunc_response)){ infunc_response=colMeans(infunc_response, na.rm = T) }
+    }
+  } else if(infunc_mode=='IC50'){
+    # infun_response_matrix=alShabi_drugs_ic50
+    # use GDSC to train instead of PRISM
+    infun_response_matrix=gdsc1_DOI_IC50
+    infunc_response=infun_response_matrix[match(infunc_drugName,
+                                                rownames(infun_response_matrix)),]
+  } else{
+    # There are curr (12th Feb), there are three drug concentrations 2 use
+    # fda_drugs_VFC_atCaverage_5days
+    # fda_drugs_VFC_atCMin_5Days
+    # fda_drugs_VFC_atCMax
+    
+    infun_response_matrix=fda_drugs_VFC_atCaverage_5days
+    infunc_response=infun_response_matrix[match(infunc_drugName, rownames(infun_response_matrix)),]
+  }
+  infunc_response
+}
+
+get_cellLine_list <- function(infunc_cancerType=infunc_cancerType, infunc_drugName, exclude_cancer,
+                              infunc_response=infunc_response,
+                              force_add_cellLines=T,
+                              force_add_cellLines_list=NA){
+  if(infunc_cancerType=='PanCan'){
+    CellLines_with_drugResponse=names(infunc_response)
+    CellLines_with_bulkExp=colnames(onTarget$expression_rnorm)
+    CellLines_with_singleCellExp=colnames(onTarget$scRNA_complete)
+    
+    # Exclude 'CellLinee2exclude' cell lines with scRNA-seq
+    CellLinee2exclude=onTarget$annotation_20Q4$DepMap_ID[
+      grep(exclude_cancer,onTarget$annotation_20Q4$lineage)]
+    if(exclude_cancer=='PanCan'){
+      CellLinee2exclude=intersect(CellLines_with_singleCellExp, onTarget$annotation_20Q4$DepMap_ID)
+    }
+    cellLines2remove=intersect(CellLinee2exclude,CellLines_with_singleCellExp)
+    
+    cellLines2remove_allCancer=intersect(onTarget$annotation_20Q4$DepMap_ID,CellLines_with_singleCellExp)
+    # common_cellLines=setdiff(intersect(CellLines_with_drugResponse, CellLines_with_bulkExp), 
+    #         cellLines2remove_allCancer)
+    common_cellLines=setdiff(intersect(CellLines_with_drugResponse, CellLines_with_bulkExp), 
+                             cellLines2remove)  
+    if(force_add_cellLines){
+    common_cellLines=c(common_cellLines, intersect(CellLines_with_bulkExp, force_add_cellLines_list))
+    }
+  } else{
+    infunc_cancerType='lung'
+    CellLines_lung=onTarget$annotation_20Q4$DepMap_ID[
+      grep(infunc_cancerType,onTarget$annotation_20Q4$lineage)]
+    CellLines_with_drugResponse=names(infunc_response)
+    CellLines_with_bulkExp=colnames(onTarget$expression_rnorm)
+    CellLines_with_singleCellExp=colnames(onTarget$scRNA_complete)
+    
+    # Romve only lung with scRNA-seq
+    cellLines2remove=intersect(CellLines_lung,CellLines_with_singleCellExp)
+    cellLines2remove_allCancer=intersect(onTarget$annotation_20Q4$DepMap_ID,CellLines_with_singleCellExp)
+    common_cellLines=setdiff(Reduce(intersect, list(CellLines_with_drugResponse,
+                                            CellLines_with_bulkExp,
+                                            CellLines_lung)),
+                             cellLines2remove)
+  }
+  list(common_cellLines, cellLines2remove)
+}
+```
+<!-- # Build funcs to predict viability -->
+```{r}
+# Given a drug response model and an expression matrix, this function returns a viability matrix
+viability_from_model<-function(infunc_DruName,
+                               infun_model,
+                               infunc_dataset){
+  # FOI stands for features of interest
+  infunc_dataset_FOI=infunc_dataset
+  infunc_dataset_FOI_t=data.frame(t(infunc_dataset_FOI))
+  
+  Viability_score=predict(infun_model,
+                          infunc_dataset_FOI_t)
+  Viability_score
+}
+
+killing_in_each_dataset<-function(infunc_scRNAseq_dataset_rnorm,
+                                  infunc_GOI=genesUsed_toBuild,
+                                  infun_model_list=Pred_models_list){
+  x=1
+  viab_raw=lapply(1:length(infun_model_list), function(x) 
+    viability_from_model(infunc_DruName=names(infun_model_list[x]),
+                         infun_model=infun_model_list[[x]]$model,
+                         infunc_dataset=infunc_scRNAseq_dataset_rnorm))
+  names(viab_raw)=names(infun_model_list)
+  do.call(cbind, viab_raw)
+}
+each_patient_killing <- function(x=1,
+                                 mode= 'weighted_average',
+                                 clone_killing_matrix=mono_killing_df){
+  total_cells=sum(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id])
+  clone_weights=unlist(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id]/total_cells)
+  if(mode=='weighted_average'){
+    weighted_killing=sum(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing*clone_weights)
+  } else if(mode=='min'){
+    weighted_killing=min(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing)
+  } else if(mode=='max'){
+    weighted_killing=max(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing)
+  } else if(mode=='weighted_max'){
+    weighted_killing=max(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],]$comb_killing*clone_weights)
+  }
+  weighted_killing
+}
+each_patient_killingv2 <- function(x=1,
+                                   mode= 'weighted_average',
+                                   clone_killing_matrix=mono_killing_df){
+  total_cells=sum(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id])
+  clone_weights=unlist(Clone_Counts_per_patients[x,clone_killing_matrix[
+    clone_killing_matrix$patient==Clone_Counts_per_patients$patients[x],]$clone_id]/total_cells)
+  if(mode=='weighted_average'){
+    killing=apply(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],-(1:2)], 2, function(x) 
+                                       sum(x*clone_weights) )
+  } else if(mode=='min'){
+    killing=apply(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],-(1:2)], 2, function(x) 
+                                       min(x) )
+  } else if(mode=='max'){
+    killing=apply(clone_killing_matrix[clone_killing_matrix$patient==
+                                     Clone_Counts_per_patients$patients[x],-(1:2)], 2, function(x) 
+                                       max(x) )
+  }
+  killing
+}
+```
+<!-- Read models -->
+```{r}
+# THis function is used to load only the performance of a model
+# Could be used in case one is accessing a large number of models performance and have limited memory.
+get_performance <- function(infunc_FOI=fileNames_ofInterest[1]){
+  readRDS(paste('Data/cancer_approved_drugs/', infunc_FOI, sep=''))[3:7]
+}
+```
+<!-- Compute meta-information for clones -->
+```{r}
+# <!-- compute clone abundance proportion (weight) in each patient -->
+each_patient_clone_weights <- function(x=1, mode= 'weighted_average'){
+  total_cells=sum(Clone_Counts_per_patients[x,comb_killing_df[
+    comb_killing_df$patient==Clone_Counts_per_patients$patients[x],]$clone_id])
+  clone_weights=unlist(Clone_Counts_per_patients[x,comb_killing_df[
+    comb_killing_df$patient==Clone_Counts_per_patients$patients[x],]$clone_id]/total_cells)
+  initialize_clone_weights=c(c1=0, c2=0, c3=0)
+  initialize_clone_weights[match(names(clone_weights), names(initialize_clone_weights))]=clone_weights
+  initialize_clone_weights
+}
+# <!-- each_patient_pseudo_bulk -->
+each_patient_pseudo_bulk <- function(x=1){
+  total_cells=sum(Clone_Counts_per_patients[x,comb_killing_df[
+    comb_killing_df$patient==Clone_Counts_per_patients$patients[x],]$clone_id])
+  clone_weights=unlist(Clone_Counts_per_patients[x,comb_killing_df[
+    comb_killing_df$patient==Clone_Counts_per_patients$patients[x],]$clone_id]/total_cells)
+  clone_expression=data.frame(clone_Level_z_expression_df[,grep(Clone_Counts_per_patients$patients[x], colnames(clone_Level_z_expression_df))])
+  if(ncol(clone_expression)>1){
+  pseudo_bulk=rowMeans(clone_Level_z_expression_df[,grep(Clone_Counts_per_patients$patients[x], colnames(clone_Level_z_expression_df))]*clone_weights)
+  } else{
+    pseudo_bulk=clone_Level_z_expression_df[,grep(Clone_Counts_per_patients$patients[x], colnames(clone_Level_z_expression_df))]
+  }
+  pseudo_bulk
+}
+```
+<!-- Calculate viability from a model at sc-level -->
+```{r}
+viability_from_model<-function(infunc_DruName=names(approved_drugs_model_for_MM_patients)[1],
+                               infun_model=approved_drugs_model_for_MM_patients[[1]]$model,
+                               infunc_dataset=
+                                 onTarget$CPM_scRNA_CCLE_rnorm[
+      match(approved_drugs_model_for_MM_patients[[1]]$model$coefnames, 
+            rownames(onTarget$CPM_scRNA_CCLE_rnorm)),
+      needed_cells_id]
+      ){
+  # FOI stands for features of interest
+  
+  infunc_dataset[match(infun_model$coefnames,rownames(infunc_dataset)),]
+  infunc_dataset_FOI=data.frame(infunc_dataset[match(infun_model$coefnames,
+                                                     rownames(infunc_dataset)),],
+                                row.names = rownames(infunc_dataset)[match(infun_model$coefnames,
+                                                     rownames(infunc_dataset))])
+  infunc_dataset_FOI=data.frame(t(infunc_dataset_FOI))
+  Viability_score=predict(infun_model, infunc_dataset_FOI)
+  Viability_score
+}
+```
+<!-- seurat_clustering given a expression matrix -->
+```{r}
+seurat_clustering <- function(input_matrix){
+  lung_so <- CreateSeuratObject(counts = input_matrix,
+                                project = "lungv0",
+                                min.cells = 3,
+                                min.features = 200)
+  lung_so <- NormalizeData(lung_so, normalization.method = "LogNormalize", scale.factor = 10000)
+  lung_so <- FindVariableFeatures(lung_so, selection.method = "vst", nfeatures = 2000)
+  lung_so <- ScaleData(lung_so)
+  lung_so <- RunPCA(lung_so, features = VariableFeatures(object = lung_so))
+  lung_so <- FindNeighbors(lung_so, dims = 1:10)
+  lung_so <- FindClusters(lung_so, resolution = 0.8)
+  cluster_id=Idents(lung_so)
+  return(cluster_id)
+}
+```
+<!-- Genes used to build models -->
+```{r}
+# genesUsed_toBuild=intersect(rownames(onTarget$expression_20Q4),
+#                             rownames(onTarget$scRNA_complete))
+# saveRDS(genesUsed_toBuild, 'Data/genesUsed_toBuild.RDS')
+```
+
+```{r}
+# genes_across_scRNA_datasets_ofInterest=Reduce(intersect, list(rownames(onTarget$scRNA_complete),
+#                                                               rownames(onTarget$expression_20Q4)))
+# saveRDS(genes_across_scRNA_datasets_ofInterest, 'Data/genes_across_scRNA_datasets_ofInterest.RDS')
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

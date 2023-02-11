@@ -1,0 +1,172 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r, setup, include=FALSE}
+# Set working directory to the directory where "SCPO_submission" is cloned.
+working_directory='/Users/mukherjees11/Documents/SCPO_submission'
+knitr::opts_knit$set(root.dir = working_directory)
+```
+<!-- Plot Figure 3: Prediction in multiple myeloma cohort.-->
+```{r}
+# Function to load a RMD file to another
+ksource <- function(x, ...) {
+  library(knitr)
+  source(purl(x, output = tempfile()), ...)
+}
+ksource('Tools/step0A_functions_needed.Rmd')
+ksource('Tools/step0B_functions_needed.Rmd')
+genesUsed_toBuild=readRDS('Data/genesUsed_toBuild.RDS')
+genes_across_scRNA_datasets_ofInterest=readRDS('Data/genes_across_scRNA_datasets_ofInterest.RDS')
+```
+<!-- Load Files and Preprocess -->
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+clone_Level_z_expression=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/clone_Level_z_expression.xlsx', skip = 2)
+resp=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/resp_info.xlsx')
+resp=na.omit(resp)
+```
+<!-- #Combination Killing (Min killing Principle) -->
+```{r}
+Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
+colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
+rownames_for_cloneexp_matrix=make.names(clone_Level_z_expression$Gene, unique = T)
+clone_Level_z_expression=clone_Level_z_expression[,-1]
+clone_Level_z_expression_df=data.frame(clone_Level_z_expression, row.names = rownames_for_cloneexp_matrix)
+clone_Level_z_expression_rnorm=rank_normalization_mat(clone_Level_z_expression_df[genesUsed_toBuild,])
+# Drug response model of carfilzomib & lenalidomide
+carfilzomib_lenalidomide_model=readRDS('Data/carfilzomib_lenalidomide_model.RDS')
+# Performance for both drugs
+Perf_Drugs=sapply(carfilzomib_lenalidomide_model, function(x) x$performance_in_scRNA)
+# COmpute killing for each clone
+killing_eachClone=killing_in_each_dataset(infunc_scRNAseq_dataset_rnorm=clone_Level_z_expression_rnorm,
+                                          infunc_GOI=genesUsed_toBuild,
+                                          infun_model_list=carfilzomib_lenalidomide_model)
+killing_eachClone=data.frame(killing_eachClone)
+killing_eachClone_z=data.frame(apply(killing_eachClone, 2, scale))
+rownames(killing_eachClone_z)=rownames(killing_eachClone)
+```
+<!-- IDA-basec combination killing -->
+```{r}
+combination_Killing=pmin(killing_eachClone_z$carfilzomib, killing_eachClone_z$lenalidomide)
+names(combination_Killing)=rownames(killing_eachClone)
+comb_killing_df=data.frame(patient=gsub('z.','',
+                                        strsplit_customv0(names(combination_Killing),
+                                                          infunc_split_by = '_', retreving_onject_id = 1)),
+                           clone_id=strsplit_customv0(names(combination_Killing),
+                                                      infunc_split_by = '_', retreving_onject_id = 2),
+                           comb_killing=combination_Killing)
+```
+<!-- #Most resistant clone may represent patient response the best -->
+```{r}
+Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
+comb_killing_df=comb_killing_df[!is.na(match(comb_killing_df$patient, Clone_Counts_per_patients$...1)),]
+colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
+killing_df=data.frame(
+  weighted_killing = sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'weighted_average', clone_killing_matrix = comb_killing_df)) ,
+  min_killing=sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'min', clone_killing_matrix = comb_killing_df)),
+  max_killing=sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'max', clone_killing_matrix = comb_killing_df)),
+  max_killing_weighted=sapply(1:nrow(Clone_Counts_per_patients), function(P)
+    each_patient_killing(x=P, mode= 'weighted_max', clone_killing_matrix = comb_killing_df))
+)
+most_resistant_clone_based_killing=killing_df$max_killing_weighted
+names(most_resistant_clone_based_killing)=Clone_Counts_per_patients$patients
+```
+<!-- # Exp vs Predicted -->
+```{r}
+Exp_vs_pred_killing=data.frame(resp,
+ most_resistant_clone_based_killing=most_resistant_clone_based_killing[match(resp$Patient, names(most_resistant_clone_based_killing))])
+Exp_vs_pred_killing$response=factor(Exp_vs_pred_killing$response)
+Exp_vs_pred_killing$response=factor(Exp_vs_pred_killing$response,
+                                    rev(levels(Exp_vs_pred_killing$response)))
+panelC <- ggplot(Exp_vs_pred_killing,
+                 aes(y=most_resistant_clone_based_killing, x=response, color=response))+
+  geom_boxplot()+
+  geom_point()+
+  stat_compare_means(method.args = list(alternative='g'), size=7, label = 'p', label.x = 1.2, label.y=0.7)+
+  theme_bw(base_size = 15)+
+  labs(y='Predicted Viability of the\n Combination (z-score)', fill='',
+       x='Multiple Myeloma\npatients')+
+  theme(legend.position = 'top')
+rocobj <- roc(response = Exp_vs_pred_killing$response,
+              predictor = Exp_vs_pred_killing$most_resistant_clone_based_killing)
+rocobj
+panelD <- ggroc(smooth(rocobj))+
+  theme_bw(base_size = 15) +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed")+
+  annotate("text", x=0.2, y=0.1, label= paste('AUC=',round(rocobj$auc,3)), size=5)
+ggsave(ggarrange(panelC, panelD),
+       filename = 'Figures/Figure5_panelBC.pdf', height=6, width=12)
+```
+<!-- Panel 3A -->
+```{r}
+Clone_Counts_per_patients=readxl::read_xlsx('Data/Supp_COhen_IdoAmit_etal/Clone_Counts_per_patients.xlsx', sheet = 2)
+Clone_Counts_per_patients=Clone_Counts_per_patients[grep('Kydar',Clone_Counts_per_patients$...1),]
+comb_killing_df=comb_killing_df[!is.na(match(comb_killing_df$patient, Clone_Counts_per_patients$...1)),]
+colnames(Clone_Counts_per_patients)=c('patients', 'c1', 'c2', 'c3')
+clone_distribution=data.frame(t(sapply(1:nrow(Clone_Counts_per_patients),
+                                       function(P) each_patient_clone_weights(x=P, mode= 'weighted_average'))))
+clone_distribution$patients=Clone_Counts_per_patients$patients
+clone_distribution_df=gather(clone_distribution, clones, weights, c1:c3)
+clone_distribution_df$response=resp$response[match(clone_distribution_df$patients, (resp$Patient))]
+panelB <- ggplot(na.omit(clone_distribution_df), aes(fill=clones, y=weights, x=patients)) + 
+    geom_bar(position="stack", stat="identity")+
+  theme_bw(base_size = 15)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position = 'top')+
+  # facet_wrap(.~response, scales = 'free', shrink = T, nrow = 2)+
+  facet_grid(.~response, shrink = T, scales = "free", space = "free_x")
+```
+<!-- Clone level plot -->
+```{r}
+df2plot_cloneLevel=data.frame(comb_killing_df,
+           resp[match(comb_killing_df$patient,
+                   resp$Patient),])
+df2plot_cloneLevel=na.omit(df2plot_cloneLevel)
+df2plot_cloneLevel$response=factor(df2plot_cloneLevel$response, labels = c('NR', 'R'))
+
+df2plot_cloneLevel$weights=clone_distribution_df$weights[
+  match(paste0(df2plot_cloneLevel$patient,'_',df2plot_cloneLevel$clone_id),
+      paste0(clone_distribution_df$patients,'_',clone_distribution_df$clones))]
+okabe <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+panel_E=ggplot(na.omit(df2plot_cloneLevel), aes(y=comb_killing, x=clone_id))+
+  geom_point(aes(color= comb_killing, size= weights))+
+  geom_segment( aes(x=clone_id, xend=clone_id, y=0, yend=comb_killing), color="black")+
+  facet_grid(.~response+patient,
+             scales = 'free_x', shrink = T,
+             drop = T,  space = "free_x", switch = 'x',
+             as.table = T)+
+  theme_bw(base_size = 15)+
+  scale_colour_viridis_c()+
+  theme(legend.position = 'top',
+        strip.placement = 'outside',
+        strip.background = element_rect(fill="white", size=1, color="white"),
+        strip.text = element_text(angle=90,
+                                  color=c(rep(hue_pal()(2)[1],7),rep(hue_pal()(2)[2],21))
+  )
+        )+
+  labs(x='Clones', y='Predicted Viability of\nthe Combination (z-score)',size= 'Proportion in Tumor',
+       color= 'Predicted Viability')+
+  ylim(... = c(-3, 1.2))
+panel_E
+```
+
+```{r}
+all_panels <- grid.arrange(panelB, panelC, panelD, panel_E,
+                           layout_matrix = rbind(c(1, 1),
+                                                 c(4, 4),
+                                                 c(4, 4),
+                                                 c(2, 3)
+                                                 ))
+ggsave(all_panels, filename = 'Figures/Figure3.pdf', height = 15, width = 10)
+ggsave(all_panels, filename = 'Figures/Figure3.tiff', height = 15, width = 10)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

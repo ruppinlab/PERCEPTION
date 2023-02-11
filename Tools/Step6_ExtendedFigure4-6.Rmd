@@ -1,0 +1,183 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+<!-- Plot Extended Figure 6 -->
+```{r, setup, include=FALSE}
+# Set working directory to the directory where "SCPO_submission" is cloned.
+working_directory='/Users/mukherjees11/Documents/SCPO_submission'
+knitr::opts_knit$set(root.dir = working_directory)
+```
+
+```{r}
+onTarget=readRDS('Data/DepMapv12.RDS')
+# Function to load a RMD file to another
+ksource <- function(x, ...) {
+  library(knitr)
+  source(purl(x, output = tempfile()), ...)
+}
+ksource('Tools/step0A_functions_needed.Rmd')
+ksource('Tools/step0B_functions_needed.Rmd')
+genesUsed_toBuild=readRDS('Data/genesUsed_toBuild.RDS')
+genes_across_scRNA_datasets_ofInterest=readRDS('Data/genes_across_scRNA_datasets_ofInterest.RDS')
+```
+<!-- Load and preprocess monotherapy -->
+```{r}
+summary_AUC=read.csv('Data/summary_AUC.tsv', sep='\t')
+to_remove=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+  x$expr_IC50!=median(x$expr_IC50)))
+summary_AUC_filtered_part1=
+  data.frame(do.call(rbind, split(summary_AUC, summary_AUC$drug))[to_remove,],
+           Q_exp=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             xtile(x$expr_IC50, 2)[x$expr_IC50!=median(x$expr_IC50)] ) ),
+           scaled_pred_resp=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             scale(x$sc_patient)[x$expr_IC50!=median(x$expr_IC50)] ))
+           )
+to_remove_onthird_ic50=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+  x$expr_33IC50 != median(x$expr_33IC50)))
+summary_AUC_filtered_part2=
+  data.frame(do.call(rbind, split(summary_AUC, summary_AUC$drug))[to_remove_onthird_ic50,],
+           Q_exp=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             xtile(x$expr_33IC50, 2)[x$expr_33IC50!=median(x$expr_33IC50)] ) ),
+           scaled_pred_resp=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             scale(x$sc_patient)[x$expr_33IC50!=median(x$expr_33IC50)] )))
+summary_AUC_filtered=rbind(summary_AUC_filtered_part1, summary_AUC_filtered_part2)
+
+summary_AUC_filtered_fifth=
+  data.frame(do.call(rbind, split(summary_AUC, summary_AUC$drug)),
+           Q_exp=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             xtile(x$expr_IC50, 5) ) ),
+           Q_exp_one_third=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             xtile(x$expr_33IC50, 5) ) ),
+           scaled_pred_resp=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             scale(x$sc_patient) )),
+            scaled_exp_resp=unlist(lapply(split(summary_AUC, summary_AUC$drug), function(x)
+             scale(x$expr_IC50) )),
+            scaled_exp_respone.third=unlist(lapply(split(summary_AUC, summary_AUC$drug),
+                                                   function(x)
+             scale(x$expr_33IC50) ))
+           )
+```
+<!-- Make Extended_Figure4 - all monotherapy data overall correaltion btw pred vs observed -->
+```{r}
+extended_figure4A <- ggplot(summary_AUC_filtered_fifth,
+       aes(x=scaled_exp_resp,y=summary_AUC_filtered_fifth$scaled_pred_resp))+
+  geom_point()+
+  theme_bw(base_size = 20)+
+  labs(y='Predicted Viability\n (z-score)', x='Observed Viability', color='Observed Viability')+
+  stat_smooth(method='lm')+
+  stat_cor()
+# ggsave(extended_figure4, filename = 'Figures/Extended_Figure4.pdf', height = 5, width = 5)
+```
+<!-- Revised Figure 4 (comb) -->
+```{r}
+rocobj0 <- roc(summary_AUC_filtered$Q_exp,
+               summary_AUC_filtered$scaled_pred_resp)
+summary_AUC_filtered$Q_exp=factor(summary_AUC_filtered$Q_exp, labels = c('Sensitive','Resistant'))
+
+Extended_Figure6_panelA <- ggplot(summary_AUC_filtered, aes(x=Q_exp, color=Q_exp, y=scaled_pred_resp))+
+  geom_boxplot()+
+  theme_bw(base_size = 20)+
+  labs(y='Predicted Viability\n (z-score)', x='Observed Viability', color='Observed Viability')+
+  stat_compare_means(label='p', label.y.npc = 0.95, method.args = list(alternative='g'), size=6, label.x.npc = 0.5)+
+  theme(axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x=element_blank(), 
+        legend.position='top')+
+  guides(color=guide_legend(nrow=2,byrow=TRUE))
+
+Extended_Figure6_panelB <- ggroc(smooth(rocobj0))+
+  theme_bw(base_size = 20) +
+  ggtitle("Resistant vs Sensitive\n cell lines") + 
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed")+
+  annotate("text", x=0.2, y=0.1, label= paste('AUC=',round(rocobj0$auc,4)), size=5, color="black")+
+  scale_colour_manual(values = c("blue"))
+Extended_Figure6 <- grid.arrange(Extended_Figure6_panelA, Extended_Figure6_panelB, nrow=1)
+# ggsave(Extended_Figure6, filename = 'Figures/Extended_Figure6AB.pdf', height = 5, width = 10)
+```
+<!-- Extended Figure 5D -->
+```{r}
+comb=read.csv('Data/summary_combAUC.tsv', sep='\t')
+comb_filtered_fifth=
+  data.frame(do.call(rbind, split(comb, comb$drug)),
+           Q_exp=unlist(lapply(split(comb, comb$drug), function(x)
+             xtile(x$expr_IC50, 5) ) ),
+           Q_exp_one_third=unlist(lapply(split(comb, comb$drug), function(x)
+             xtile(x$expr_33IC50, 5) ) ),
+           scaled_pred_resp=unlist(lapply(split(comb, comb$drug), function(x)
+             scale(x$sc_patient) )),
+            scaled_exp_resp=unlist(lapply(split(comb, comb$drug), function(x)
+             scale(x$expr_IC50) )),
+            scaled_exp_respone.third=unlist(lapply(split(comb, comb$drug),
+                                                   function(x)
+             scale(x$expr_33IC50) ))
+           )
+# Extended FIgure 4B.
+extended_figure4B <- ggplot(comb_filtered_fifth,
+       aes(x=scaled_exp_resp,y=comb_filtered_fifth$scaled_pred_resp))+
+  geom_point()+
+  theme_bw(base_size = 20)+
+  labs(y='Predicted Comb\nViability (z-score)', x='Observed Comb\nViability (z-score)', color='Observed Viability')+
+  stat_smooth(method='lm')+
+  stat_cor()
+Extended_Figure4 <- grid.arrange(extended_figure4A, extended_figure4B, nrow=1)
+ggsave(Extended_Figure4, filename = 'Figures/Extended_Figure4.pdf', height = 5, width = 10)
+```
+<!-- Preprocess for combination -->
+```{r}
+to_remove=unlist(lapply(split(comb, comb$drug), function(x)
+  x$expr_IC50!=median(x$expr_IC50)))
+comb_filtered_part1=
+  data.frame(do.call(rbind, split(comb, comb$drug))[to_remove,],
+           Q_exp=unlist(lapply(split(comb, comb$drug), function(x)
+             xtile(x$expr_IC50, 2)[x$expr_IC50!=median(x$expr_IC50)] ) ),
+           scaled_pred_resp=unlist(lapply(split(comb, comb$drug), function(x)
+             scale(x$sc_patient)[x$expr_IC50!=median(x$expr_IC50)] ))
+           )
+to_remove_onthird_ic50=unlist(lapply(split(comb, comb$drug), function(x)
+  x$expr_33IC50 != median(x$expr_33IC50)))
+comb_filtered_part2=
+  data.frame(do.call(rbind, split(comb, comb$drug))[to_remove_onthird_ic50,],
+           Q_exp=unlist(lapply(split(comb, comb$drug), function(x)
+             xtile(x$expr_33IC50, 2)[x$expr_33IC50!=median(x$expr_33IC50)] ) ),
+           scaled_pred_resp=unlist(lapply(split(comb, comb$drug), function(x)
+             scale(x$sc_patient)[x$expr_33IC50!=median(x$expr_33IC50)] )))
+comb_filtered=rbind(comb_filtered_part1, comb_filtered_part2)
+```
+<!-- REvised Figure 4 -->
+```{r}
+table(comb_filtered$Q_exp)
+rocobj0 <- roc(comb_filtered$Q_exp,
+               comb_filtered$scaled_pred_resp)
+comb_filtered$Q_exp=factor(comb_filtered$Q_exp, labels = c('Sensitive','Resistant'))
+Extended_Figure6_panelC <- ggplot(comb_filtered, aes(x=Q_exp, color=Q_exp, y=scaled_pred_resp))+
+  geom_boxplot()+
+  theme_bw(base_size = 20)+
+  labs(y='Predicted Comb\nViability (z-score)', color='Observed \nComb Viability')+
+  stat_compare_means(label='p', label.y.npc = 0.95, method.args = list(alternative='g'), size=6, label.x.npc = 0.5)+
+  theme(axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x=element_blank(), 
+        legend.position='none')
+
+Extended_Figure6_panelD <- ggroc(smooth(rocobj0))+
+  theme_bw(base_size = 20) +
+  ggtitle("Comb Resistant vs Sensitive\n cell lines") + 
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed")+
+  annotate("text", x=0.2, y=0.1, label= paste('AUC=',round(rocobj0$auc,4)), size=5, color="black")+
+  scale_colour_manual(values = c("blue"))
+Extended_Figure6_part2 <- grid.arrange(Extended_Figure6_panelC, Extended_Figure6_panelD, nrow=1)
+Extended_Figure6_complete=grid.arrange(Extended_Figure6, Extended_Figure6_part2, nrow=2)
+ggsave(Extended_Figure6_complete, filename = 'Figures/Extended_Figure6.pdf', height = 8, width = 11)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
