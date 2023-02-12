@@ -2,14 +2,19 @@
 We build a precision oncology computational approach capitalizes on recently published matched bulk and single-cell (SC) transcriptome profiles of large-scale cell-line drug screens to build treatment response models from patients' SC tumor transcriptomics. The general objective of this project is to utilize single-cell omics from patients tumor to predict response and resistance. The following figure describe the pipeline of PERCEPTION and its application.
 ![PERCEPTION pipeline_new](https://user-images.githubusercontent.com/26137763/216864419-a8a35147-ce34-43bd-a360-38d9ac07d4ac.png)
 
+<h2><b>Section 1: How to reproduce the Figures from the PERCEPTION manuscript?</b></h2>
+This section will describe how to reproduce the figures described in the following manuscript.
+<br><br>
+Sinha, S., Vegesna, R., Mukherjee, S., Kammula, A., Dhruba, S.R., Wu, W., Kerr, L., Nair, N., Jones, M., Yosef, N., Stroganov, O., Grishagin, I., Aldape, K., Blakely, C., Jiang, P., Thomas, C., Benes, C., Bivona, T., Schäffer, A. and Ruppin, E. (2023). "<b>PERCEPTION: Predicting patient treatment response and resistance via single-cell transcriptomics of their tumors</b>".
+<br><br>
 The code to generate the Figures is in R and is presented as a set of R markdown(.Rmd) files to be run in Rstudio. 
 The data files are in a mixture of RDS, csv, tsv, and other formats.
 Because we want to have version control and quickly do updates, the code is in a GitHub repository.
 Because the data files are large and because journals require a frozen snapshot of data, the data files are in a Zenodo repository.
-To reproduce the results one must clone the GitHub repository and download the files from the Zenodo repository into a common directory on a computer running Linux or MacOS. We have tested the following
-instructions on one computer of each type. 
+To reproduce the results one must clone the GitHub repository and download the files from the Zenodo repository into a common directory on a computer running Linux or MacOS. We have tested the following instructions on one computer of each type. 
 
-<h3><b>Please perform the following steps to reproduce the main Figures from the manuscript:</b></h3>
+
+<h3><b>Please perform the following steps to reproduce the Figures from the manuscript:</b></h3>
 
 <b>Step 1:</b> Clone/Download this repository using the command
 ```
@@ -117,7 +122,7 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 	 TableS5.csv 
 	 TableS5 copy.csv 
 
-<h2><b>How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
+<h2><b>Section 2: How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
 To run the PERCEPTION on the new clinical trial dataset, please use <b>Tools/Running_PERCEPTION_for_new_dataset.Rmd</b>. 
 
 This script identifies the major cancer cell clusters in the patient's tumor using their sc-expression (transcriptional clone). By computing the mean expression of each transcriptional clone and providing it as an input to the drug response model, this script predicts the drug response of each transcriptional clone separately. Considering that the most resistant clone to the drug will likely get selected by the treatment, this script predicts the overall patient’s response as the predicted response of the most resistant clone.
