@@ -1,0 +1,792 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+<!-- Plot Figure 5: Capturing the emergence of resistance in lung cancer cohort.-->
+<!-- Predicting the development of resistance to tyrosine kinase inhibitors (TKIs) in lung cancer patients. -->
+```{r, setup, include=FALSE}
+# Set working directory to the directory where "SCPO_submission" is cloned.
+working_directory='/Users/mukherjees11/Documents/SCPO_submission'
+knitr::opts_knit$set(root.dir = working_directory)
+```
+
+```{r}
+onTarget=readRDS('Data/DepMapv12.RDS')
+# Function to load a RMD file to another
+ksource <- function(x, ...) {
+  library(knitr)
+  source(purl(x, output = tempfile()), ...)
+}
+ksource('Tools/step0A_functions_needed.Rmd')
+ksource('Tools/step0B_functions_needed.Rmd')
+genesUsed_toBuild=readRDS('Data/genesUsed_toBuild.RDS')
+genes_across_scRNA_datasets_ofInterest=readRDS('Data/genes_across_scRNA_datasets_ofInterest.RDS')
+```
+
+<!-- Here, we preprocess and analyze Maynard et al dataset. -->
+The data was provided by the authors as a box link which was downloaded to:
+/data/Lab_ruppin/resources/single_cell_datasets/PRJNA591860/data_byAuthors/
+
+We generated a symbolic link to the data in the working folder
+ln -s /data/Lab_ruppin/resources/single_cell_datasets/PRJNA591860
+/data/Lab_ruppin/vegesnar2/sc_drug_response/patient_validation/lung_cancer/PRJNA591860/data
+<!-- patient data parsing has already been performed and objects are saved to save time. 
+(Time Intensive and thus this is commented out) -->
+```{r}
+# data_id="PRJNA591860"
+# expr="data/PRJNA591860_all_cells.RDS"
+# met="data/PRJNA591860/data_byAuthors/NI05_all_epithelial_annotated_normal_and_tumor_Meta.txt"
+# #Read files
+# exp_matrix<-readRDS(expr)
+# #epitheliali cells metadata only, exculdes the annotation of other cell types
+# metadata<-read.table(met, sep="\t",stringsAsFactors=F,header=T, comment="")
+# patient_sample_mappign=data.frame(metadata$sample_name,
+#                                   metadata$patient_id)
+# 
+# celltype<-names(table(metadata$epi_anno_final, useNA = "ifany"))
+# sample_names<-names(table(metadata$sample_name, useNA = "ifany"))
+# patient_names<-names(table(metadata$patient_id, useNA = "ifany"))
+# biopsy_names<-names(table(metadata$biopsy_site, useNA = "ifany"))
+# stage_names<-names(table(metadata$primary_or_metastaic, useNA = "ifany"))
+# 
+# # subsettting malignant cells & metadata for malignant cells
+# celltype_of_interest="tumor"
+# malignant_metadata=metadata[which(metadata$epi_anno_final== celltype_of_interest),]
+# malignant_cells<-malignant_metadata$cell_id
+# 
+# #Cells missing in expression matrix. Samples AZ_01 to AZ_05 are missing in the data. Alls samples starting with LT are present.
+# missing=setdiff(malignant_cells,intersect(colnames(exp_matrix),malignant_cells))
+# missing_metadata=malignant_metadata[match(missing,malignant_metadata$cell_id),]
+# #Missing samples
+# table(missing_metadata$sample_name)
+# malignant_cells_parsed<-setdiff(malignant_cells,missing)
+# 
+# # Malignant cells expression.
+# temp<-exp_matrix[,malignant_cells_parsed]
+# PRJNA591860<- as.data.frame(as.matrix(temp))
+# saveRDS(PRJNA591860,"data/PRJNA591860.RDS")
+# PRJNA591860_sample_cell_names=lapply(sample_names, function(x){
+#     samples_cells<-metadata$cell_id[which(metadata$sample_name==x)]
+#  return(intersect(malignant_cells_parsed,samples_cells))})
+# names(PRJNA591860_sample_cell_names)=sample_names
+# saveRDS(PRJNA591860_sample_cell_names,"data/PRJNA591860_sample_cell_names.RDS")
+```
+<!-- Load Patient malignant cells expression and metadata -->
+```{r}
+PRJNA591860_sample_cell_names=readRDS("Data/PRJNA591860_sample_cell_names.RDS")
+Total_cell_each_patient=sapply(PRJNA591860_sample_cell_names, length)
+# Total patients with at least one malignant cell (N=39)
+sum(Total_cell_each_patient>0)
+PRJNA591860=readRDS("Data/PRJNA591860.RDS")
+dim(PRJNA591860)
+Maynard_Supp2_Demo=readxl::read_xlsx('Data/Maynard_Supp2_Demo.xlsx', sheet = 2)
+```
+<!-- Use genes used to build the model to normalize the scRNA-expression -->
+```{r}
+# Genes common between bulk, single cell and patient datasets which were used to build models
+genesUsed_toBuild=Reduce(intersect,list(rownames(onTarget$expression_20Q4),
+                                        rownames(onTarget$scRNA_complete),
+                                        rownames(PRJNA591860)))
+```
+<!-- seurat_clustering given an expression matrix -->
+```{r}
+require(Seurat)
+seurat_clustering <- function(input_matrix){
+  lung_so <- CreateSeuratObject(counts = input_matrix,
+                                project = "lungv0",
+                                min.cells = 3,
+                                min.features = 200)
+  lung_so <- NormalizeData(lung_so, normalization.method = "LogNormalize", scale.factor = 10000)
+  lung_so <- FindVariableFeatures(lung_so, selection.method = "vst", nfeatures = 2000)
+  lung_so <- ScaleData(lung_so)
+  lung_so <- RunPCA(lung_so, features = VariableFeatures(object = lung_so))
+  lung_so <- FindNeighbors(lung_so, dims = 1:10)
+  lung_so <- FindClusters(lung_so, resolution = 0.8)
+  return(lung_so)
+}
+set.seed(1)
+lung_so=seurat_clustering(PRJNA591860)
+lung_so <- RunUMAP(lung_so, dims = 1:10)
+EF11_panelA_umap_lung_dataset=DimPlot(lung_so, reduction = "umap")
+ggsave(EF11_panelA_umap_lung_dataset, filename = 'Figures/Extended_Figure11.pdf', height=6, width=6)
+ggsave(EF11_panelA_umap_lung_dataset, filename = 'Figures/Extended_Figure11.png', height=6, width=6)
+# <!-- Create Clone ID for each cell-->
+PRJNA591860_subClone_id=Idents(lung_so)
+```
+<!-- Load clone ID below in case you wanna skip seurat step -->
+```{r}
+# PRJNA591860_subClone_id=seurat_clustering(PRJNA591860)
+# saveRDS(PRJNA591860_subClone_id, 'Data/subClone_id_PRJNA591860.RDS')
+# PRJNA591860_subClone_id=readRDS('/Data/subClone_id_PRJNA591860.RDS')
+```
+<!-- Add Patient annotation -->
+```{r}
+PRJNA591860_subClone_id_df=data.frame(PRJNA591860_subClone_id)
+patient_ann=PRJNA591860_sample_cell_names
+# Patient and clone info for each cell
+paitent_n_cloneAnn=lapply(1:length(PRJNA591860_sample_cell_names), function(x) {
+  err_handle(data.frame(clone_id=PRJNA591860_subClone_id[match(PRJNA591860_sample_cell_names[[
+    names(PRJNA591860_sample_cell_names)[x] ]], names(PRJNA591860_subClone_id))],
+             patient_id=names(PRJNA591860_sample_cell_names)[x],
+             cell_id= PRJNA591860_sample_cell_names[[ names(PRJNA591860_sample_cell_names)[x] ]]
+  ))
+  }
+)
+names(paitent_n_cloneAnn)=names(PRJNA591860_sample_cell_names)
+paitent_n_cloneAnn_df=do.call(rbind, paitent_n_cloneAnn)
+head(paitent_n_cloneAnn_df)
+Cluster_abundance_in_patients=aggregate(cell_id~ clone_id+patient_id , paitent_n_cloneAnn_df, length)
+Cluster_abundance_in_patients_list=split(Cluster_abundance_in_patients ,Cluster_abundance_in_patients$patient_id)
+Cluster_abundance_in_patients_2plot=do.call(rbind, lapply(Cluster_abundance_in_patients_list, function(x) data.frame(x, proportion=x[,3]/sum(x[,3]))))
+Cluster_abundance_in_patients_2plot$Treatment_Timepoint=Maynard_Supp2_Demo$`Treatement Timepoint`[match(Cluster_abundance_in_patients_2plot$patient_id, Maynard_Supp2_Demo$`Sample Name`)]
+```
+<!-- Subclonal Expression (approximation, sum over the cluster) -->
+```{r}
+paitent_n_cloneAnn=paitent_n_cloneAnn[names(unlist(sapply(paitent_n_cloneAnn,nrow)))]
+
+PRJNA591860_subclone_meanExp=lapply(paitent_n_cloneAnn,function(x) 
+  data.frame(sapply(split(x$cell_id, factor(x$clone_id)), function(y)
+    rowMeans_if_one_row(data.frame(PRJNA591860[,y])) ))
+         )
+```
+<!-- Obtain the drug response models -->
+```{r}
+file_list=list.files(path="Data/PRJNA591860/",full.names=TRUE)
+drug_models=readRDS('Data/Responde_models_usedin_PRJNA591860_lung.RDS')
+
+# model_file_list=file_list[grep("_model.RDS",file_list)]
+# DOI=unlist(lapply(model_file_list,function(x){unlist(strsplit(tail(unlist(strsplit(x,split="/")),1),split="_"))[1]}))
+# # Load the models for the drugs in the cohort
+# drugs_used=c("alectinib","ceritinib","crizotinib","dabrafenib","erlotinib","gemcitabine","lorlatinib","osimertinib","trametinib")
+# DOI_file_id=unlist(sapply(drugs_used, function(x) grep(x, model_file_list) ))
+# drug_models=lapply(DOI_file_id, function(x) readRDS(model_file_list[x]))
+# length(drug_models)
+# names(drug_models)=names(DOI_file_id)
+```
+<!-- Model Performance -->
+```{r}
+corr_matrix=cbind(
+  bulk=unlist(lapply(drug_models,function(x)x$performance_in_bulk[2])),
+  pseudo_bulk=unlist(lapply(drug_models,function(x)x$performance_in_pseudo_bulk[2])),
+  sc=unlist(lapply(drug_models,function(x)x$performance_in_scRNA[2])) )
+rownames(corr_matrix)=names(drug_models)
+
+pval_matrix=cbind(
+  bulk=unlist(lapply(drug_models,function(x)x$performance_in_bulk[1])),
+  pseudo_bulk=unlist(lapply(drug_models,function(x)x$performance_in_pseudo_bulk[1])),
+  sc=unlist(lapply(drug_models,function(x)x$performance_in_scRNA[1]))
+)
+rownames(pval_matrix)=names(drug_models)
+#Number of cell lines with AUC values used in validation
+TotalcellLines_used_in_validation=unlist(lapply(
+  drug_models,function(x)length(na.omit(x$predVSgroundTruth$pred_gt_mscRNA$Observed))))
+```
+<!-- Select the significant drug models -->
+```{r}
+significant_drugs_names=names(which(corr_matrix[,3]>0.3 & pval_matrix[,3]<0.05)) #
+#Drug models from PERCEPTION
+significant_drugs_models=drug_models[significant_drugs_names]
+#In control mode:: Repeat with (Bulk_models_list) from "Bulk_based_only_model.Rmd"
+# significant_drugs_names=Bulk_models_list
+# significant_drugs_names=Bulk_models_list_rf
+# significant_drugs_models=Bulk_models_list
+```
+<!-- #COmpute Improvement Score-->
+<!-- Step 1: Monotherapy Killing for each clone-->
+```{r}
+PRJNA591860_subclone_meanExp_rnorm=lapply(PRJNA591860_subclone_meanExp, function(x) 
+  err_handle(data.frame(rank_normalization_mat(data.frame(x[genesUsed_toBuild,])), 
+                        row.names = genesUsed_toBuild) ) )
+killing_eachClone_list= lapply(PRJNA591860_subclone_meanExp_rnorm, function(x)
+  err_handle(killing_in_each_dataset(infunc_scRNAseq_dataset_rnorm=x,
+                                     infunc_GOI=genesUsed_toBuild,
+                                     infun_model_list=significant_drugs_models)) )
+
+killing_eachClone_list_wd_paitentID=lapply(names(killing_eachClone_list), function(x) cbind(x,
+                                                        killing_eachClone_list[[x]]))
+names(killing_eachClone_list_wd_paitentID)=names(killing_eachClone_list)
+Killing_at_clone_level=do.call(rbind, lapply(names(Cluster_abundance_in_patients_list), function(x)
+  data.frame(CloneID = Cluster_abundance_in_patients_list[[x]]$clone_id,
+             killing_eachClone_list_wd_paitentID[[x]]) ))
+```
+<!-- Plot EF11_panelB -->
+```{r}
+EF11_panelB <- ggplot(Cluster_abundance_in_patients_2plot,
+                 aes(fill=clone_id, y=proportion, x=patient_id)) + 
+    geom_bar(position="stack", stat="identity")+
+  theme_bw(base_size = 15)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position = 'top')+
+  facet_grid(.~Treatment_Timepoint, shrink = T, scales = "free", space = "free_x")+
+  labs(y='Clone\nProportion')
+ggsave(EF11_panelB, filename = 'Figures/EF11_panelB.pdf', height=4, width=6)
+ggsave(EF11_panelB, filename = 'Figures/EF11_panelB.png', height=4, width=6)
+```
+<!-- Plot Killing at clone level for Erlotinib -->
+```{r}
+Killing_at_clone_level$Treatment=Maynard_Supp2_Demo$Treatment[
+  match(Killing_at_clone_level$x, Maynard_Supp2_Demo$`Sample Name`)]
+Killing_at_clone_level$Response=Maynard_Supp2_Demo$`Treatement Timepoint`[
+  match(Killing_at_clone_level$x, Maynard_Supp2_Demo$`Sample Name`)]
+erlotinib_id=grep('erlotinib',Killing_at_clone_level$Treatment)
+osimertinib_id=grep('osimertinib',Killing_at_clone_level$Treatment)
+dabrafenib_id=grep('dabrafenib',Killing_at_clone_level$Treatment)
+trametinib_id=grep('trametinib',Killing_at_clone_level$Treatment)
+Killing_at_clone_level$erlotinib=as.numeric(Killing_at_clone_level$erlotinib)
+Killing_at_clone_level$osimertinib=as.numeric(Killing_at_clone_level$osimertinib)
+Killing_at_clone_level$gemcitabine=as.numeric(Killing_at_clone_level$gemcitabine)
+Killing_at_clone_level$dabrafenib=as.numeric(Killing_at_clone_level$dabrafenib)
+Killing_at_clone_level$trametinib=as.numeric(Killing_at_clone_level$trametinib)
+
+EF11_panel_C=ggplot(Killing_at_clone_level[erlotinib_id,], aes(y=erlotinib, x=CloneID))+
+  geom_point(aes(color= erlotinib, size=erlotinib))+
+  geom_segment( aes(x=CloneID,
+                    xend=CloneID, y=0, 
+                    yend=erlotinib), color="black")+
+  facet_grid(.~Response+x,
+             scales = 'free_x', shrink = T,
+             drop = T,  space = "free_x", switch = 'x',
+             as.table = T)+
+  theme_bw(base_size = 11)+
+  scale_colour_viridis_c()+
+  theme(legend.position = 'top',
+        strip.placement = 'outside',
+        strip.background = element_rect(fill="white", size=1, color="white"),
+        strip.text = element_text(angle=0,
+                                  color=c(rep(hue_pal()(2)[1],7),rep(hue_pal()(2)[2],21))
+  )
+        )+
+  labs(x='Clones', y='Predicted Viability of\nErlotinib (z-score)',
+       color= 'Predicted Viability', size='Predicted Viability')
+
+ggsave(EF11_panel_C, filename = 'Figures/EF11_panel_C.pdf', height=5, width=9)
+ggsave(EF11_panel_C, filename = 'Figures/EF11_panel_C.png', height=5, width=9)
+```
+<!-- Plot Killing at clone level for osimertinib -->
+```{r}
+EF11_panel_D=ggplot(Killing_at_clone_level[osimertinib_id,], aes(y=osimertinib, x=CloneID))+
+  geom_point(aes(color= osimertinib, size=osimertinib))+
+  geom_segment( aes(x=CloneID,
+                    xend=CloneID, y=0, 
+                    yend=osimertinib), color="black")+
+  facet_grid(.~Response+x,
+             scales = 'free_x', shrink = T,
+             drop = T,  space = "free_x", switch = 'x',
+             as.table = T)+
+  theme_bw(base_size = 11)+
+  scale_colour_viridis_c()+
+  theme(legend.position = 'top',
+        strip.placement = 'outside',
+        strip.background = element_rect(fill="white", size=1, color="white"),
+        strip.text = element_text(angle=0,
+                                  color=c(rep(hue_pal()(2)[1],7),rep(hue_pal()(2)[2],21))
+  )
+        )+
+  labs(x='Clones', y='Predicted Viability of\nosimertinib (z-score)',
+       color= 'Predicted Viability', size='Predicted Viability')
+```
+<!-- Plot Killing at clone level for dabrafenib -->
+```{r}
+EF11_panel_F=ggplot(Killing_at_clone_level[dabrafenib_id,], aes(y=dabrafenib, x=CloneID))+
+  geom_point(aes(color= dabrafenib, size=dabrafenib))+
+  geom_segment( aes(x=CloneID,
+                    xend=CloneID, y=0, 
+                    yend=dabrafenib), color="black")+
+  facet_grid(.~Response+x,
+             scales = 'free_x', shrink = T,
+             drop = T,  space = "free_x", switch = 'x',
+             as.table = T)+
+  theme_bw(base_size = 11)+
+  scale_colour_viridis_c()+
+  theme(legend.position = 'top',
+        strip.placement = 'outside',
+        strip.background = element_rect(fill="white", size=1, color="white"),
+        strip.text = element_text(angle=0,
+                                  color=c(rep(hue_pal()(2)[1],7),rep(hue_pal()(2)[2],21))
+  )
+        )+
+  labs(x='Clones', y='Predicted Viability of\ndabrafenib (z-score)',
+       color= 'Predicted Viability', size='Predicted Viability')
+```
+<!-- Plot Killing at clone level for trametinib -->
+```{r}
+EF11_panel_G=ggplot(Killing_at_clone_level[trametinib_id,], aes(y=trametinib, x=CloneID))+
+  geom_point(aes(color= trametinib, size=trametinib))+
+  geom_segment( aes(x=CloneID,
+                    xend=CloneID, y=0, 
+                    yend=trametinib), color="black")+
+  facet_grid(.~Response+x,
+             scales = 'free_x', shrink = T,
+             drop = T,  space = "free_x", switch = 'x',
+             as.table = T)+
+  theme_bw(base_size = 11)+
+  scale_colour_viridis_c()+
+  theme(legend.position = 'top',
+        strip.placement = 'outside',
+        strip.background = element_rect(fill="white", size=1, color="white"),
+        strip.text = element_text(angle=0,
+                                  color=c(rep(hue_pal()(2)[1],7),rep(hue_pal()(2)[2],21))
+  )
+        )+
+  labs(x='Clones', y='Predicted Viability of\ntrametinib (z-score)',
+       color= 'Predicted Viability', size='Predicted Viability')
+```
+<!-- Plot the Whole EF 11 -->
+```{r}
+EF11 <- grid.arrange(EF11_panelA_umap_lung_dataset,
+                     EF11_panelB,
+                     EF11_panel_C,
+                     EF11_panel_F,
+                     EF11_panel_D,
+                     EF11_panel_G,
+                     layout_matrix = rbind(c(1, 2, 2),c(1, 2, 2),c(3), c(4),c(5), c(6)))
+ggsave(EF11, filename = 'Figures/Extended_Figure11.pdf', height=16, width=12)
+ggsave(EF11, filename = 'Figures/Extended_Figure11.png', height=16, width=12)
+```
+<!-- Step 2: Patient level killing (colMax) -->
+```{r}
+# Convert list to df
+killing_eachClone_list_wd_paitentID_df=do.call(rbind, killing_eachClone_list_wd_paitentID)
+# Scale the killing
+killing_eachClone_scaled=data.frame(Patient_ID=killing_eachClone_list_wd_paitentID_df[,1],
+           apply(killing_eachClone_list_wd_paitentID_df[,-1], 2, function(x) scale(as.numeric(x))))
+# Convert back to list
+killing_eachClone_scaled_list=split(killing_eachClone_scaled[,-1],
+                                    killing_eachClone_scaled$Patient_ID)
+```
+<!-- Compute Patient response from Clone response -->
+```{r}
+# Rule: Most resistant clone best reflects the clinical response
+Killing_patient_level=sapply(killing_eachClone_scaled_list, colMax)
+
+# Rule: Most resistant clone best reflects the clinical response
+# Killing_patient_level=sapply(killing_eachClone_scaled_list, colMeans)
+Killing_patient_level=data.frame(Killing_patient_level)
+```
+<!-- Checkpoint -->
+```{r}
+# saveRDS(Killing_patient_level, 'Data/PRJNA591860_patient_level_killing.RDS')
+# Pre-computed version for patient-level predicted killing.
+# Killing_patient_level=readRDS('Data/PRJNA591860_patient_level_killing.RDS')
+```
+<!-- Load the demographics provided -->
+```{r}
+Killing_patient_level=t(Killing_patient_level)
+Maynard_Supp2_Demo=readxl::read_xlsx('Data/Maynard_Supp2_Demo.xlsx', sheet = 2)
+sort(table(Maynard_Supp2_Demo$`Patient ID`))
+Killing_patient_level_ann_biopsy_timepoint=cbind(Killing_patient_level, 
+Maynard_Supp2_Demo[match(rownames(Killing_patient_level),
+                         Maynard_Supp2_Demo$`Sample Name`),])
+```
+<!-- Hypothesis: Whether the timepoint of tissue collection is positively correlated vs pred viab -->
+<!-- Step 1: Compute each drug Treatnaive killing -->
+```{r}
+treatment_naive_samples=Killing_patient_level_ann_biopsy_timepoint$`Treatement Timepoint`=='TN'
+significant_drugs_names=colnames(Killing_patient_level)
+treatment_naive_Killing_each_drug=Killing_patient_level_ann_biopsy_timepoint[treatment_naive_samples,significant_drugs_names]
+treatment_naive_Killing_each_drug_mean=colMeans(treatment_naive_Killing_each_drug)
+treatment_naive_Killing_each_drug_mean
+```
+<!-- add the needed basline to the dataframe-->
+```{r}
+table(Killing_patient_level_ann_biopsy_timepoint$Treatment)
+sort(unique(Killing_patient_level_ann_biopsy_timepoint$`Treatement Timepoint`))
+progressive_diseases_samples=Killing_patient_level_ann_biopsy_timepoint$`Treatement Timepoint`!='TN'
+Killing_patient_level_ann_biopsy_timepoint_Post=Killing_patient_level_ann_biopsy_timepoint[progressive_diseases_samples,]
+Killing_patient_level_ann_biopsy_timepoint_Post$Treatment[grep('erlotinib',Killing_patient_level_ann_biopsy_timepoint_Post$Treatment)]='erlotinib'
+Killing_patient_level_ann_biopsy_timepoint_Post$Treatment[grep('dabrafenib',Killing_patient_level_ann_biopsy_timepoint_Post$Treatment)]='dabrafenib'
+Killing_patient_level_ann_biopsy_timepoint_Post$Treatment[grep('trametinib',Killing_patient_level_ann_biopsy_timepoint_Post$Treatment)]='trametinib'
+Killing_patient_level_ann_biopsy_timepoint_Post=Killing_patient_level_ann_biopsy_timepoint_Post[
+  Killing_patient_level_ann_biopsy_timepoint_Post$Treatment %in%
+    names(treatment_naive_Killing_each_drug_mean),]
+# add the needed basline
+Killing_patient_level_ann_biopsy_timepoint_Post$respective_baseline=
+  treatment_naive_Killing_each_drug_mean[
+  match(Killing_patient_level_ann_biopsy_timepoint_Post$Treatment,
+        names(treatment_naive_Killing_each_drug_mean))]
+```
+<!-- Extract each sample differential change and days of treatment -->
+```{r}
+DOI=unique(Killing_patient_level_ann_biopsy_timepoint_Post$Treatment)
+dim(Killing_patient_level_ann_biopsy_timepoint_Post)
+
+dim(Killing_patient_level_ann_biopsy_timepoint_Post)
+Killing_patient_level_ann_biopsy_timepoint_Post
+x=DOI[1]
+Viab_preANDpost_treatment=lapply(DOI, function(x){
+  infunc_df=Killing_patient_level_ann_biopsy_timepoint_Post[
+    Killing_patient_level_ann_biopsy_timepoint_Post$Treatment %in% x,]
+  
+  
+  cbind(resp=infunc_df[,x], 
+        infunc_df[,c('Sample Name','Patient ID', colnames(infunc_df)[16:24])],
+        Change_resp=infunc_df[,x] - infunc_df[,24])
+  } )
+
+Viab_preANDpost_treatment_integrated=do.call(rbind, Viab_preANDpost_treatment)
+```
+<!-- Correlation btw resistance and days of treatment -->
+```{r}
+resistant_id=Viab_preANDpost_treatment_integrated$`Treatement Timepoint`=='PD'
+cor.test(
+  as.numeric(Viab_preANDpost_treatment_integrated$`Treatment start to tissue acquisition (days)`)[resistant_id],
+  as.numeric(Viab_preANDpost_treatment_integrated$Change_resp)[resistant_id],
+  method = 's')
+```
+<!--Plot Correlation btw resistance and days of treatment for PD and RD-->
+```{r}
+Viab_preANDpost_treatment_integrated$biopsy_from_treatment=as.numeric(Viab_preANDpost_treatment_integrated$`Treatment start to tissue acquisition (days)`)
+Viab_preANDpost_treatment_integrated$`Treatement Timepoint`=factor(Viab_preANDpost_treatment_integrated$`Treatement Timepoint`)
+dim(Viab_preANDpost_treatment_integrated)
+
+fig5A <- ggplot(Viab_preANDpost_treatment_integrated,
+       aes(x=Change_resp,
+           y=biopsy_from_treatment,
+           fill=`Treatement Timepoint`,
+           color=`Treatement Timepoint`))+
+  geom_point()+
+  stat_smooth(method = 'lm')+
+  theme_bw(base_size = 20)+
+  labs(y='Treatment Length', x="Extent of resistance\n from the baseline")
+ggsave(fig5A,
+       filename = 'Figures/Figure5A.pdf', height = 4, width = 8)
+ggsave(fig5A,
+       filename = 'Figures/Figure5A.png',height = 4, width = 8)
+colnames(Viab_preANDpost_treatment_integrated)[1]='PERCEPTION Extent of Response'
+write.csv(Viab_preANDpost_treatment_integrated,'Data/TableS5.csv')
+```
+<!-- Stratification -->
+<!-- Figure 5B -->
+```{r}
+rocobj <- roc(response = Viab_preANDpost_treatment_integrated$`Treatement Timepoint`,
+              predictor = Viab_preANDpost_treatment_integrated$Change_resp)
+panelB <- ggroc(smooth(rocobj))+
+  theme_bw(base_size = 15) +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed")+
+  annotate("text", x=0.2, y=0.1, label= paste('AUC=',round(rocobj$auc,3)), size=5)
+ggsave(panelB,
+       filename = 'Figures/ROC_PDvsR.png',
+       height = 4, width = 4)
+ggsave(panelB,
+       filename = 'Figures/ROC_PDvsR.pdf',
+       height = 4, width = 4)
+```
+
+<!-- Plot Figure 5D -->
+<!-- Hypothesis: Whether clones that are more resistant more likely to increase vs the clones that are senstitive -->
+<!-- Load predicted killing at a clone level -->
+```{r}
+killing_n_abundance_clone_keyDrugs=readRDS('Data/lung_killing_n_abundance_clone_keyDrugs.RDS')
+```
+<!-- Preprocessing needed -->
+```{r}
+clones_with_more_than_1points=killing_n_abundance_clone_keyDrugs$CloneID %in% 
+  names(which(table(killing_n_abundance_clone_keyDrugs$CloneID)>1))
+killing_n_abundance_clone_keyDrugs=killing_n_abundance_clone_keyDrugs[clones_with_more_than_1points,]
+killing_n_abundance_clone_keyDrugs$treatment_time=as.numeric(killing_n_abundance_clone_keyDrugs$treatment_time)
+mean_killing_each_clone=data.frame(aggregate(killing_n_abundance_clone_keyDrugs$respective_response ~
+                                               killing_n_abundance_clone_keyDrugs$CloneID, FUN = mean))
+colnames(mean_killing_each_clone)=c('cloneID', 'mean_killing')
+mean_killing_each_clone$mean_killingQ=xtile(mean_killing_each_clone$mean_killing, 2)
+killing_n_abundance_clone_keyDrugs$Whether_resistant=mean_killing_each_clone$mean_killingQ[match( killing_n_abundance_clone_keyDrugs$CloneID, mean_killing_each_clone$cloneID)]
+```
+<!-- Linear regression to identify the slope of abundance vs time plot -->
+```{r}
+all_available_clone=unique(killing_n_abundance_clone_keyDrugs$CloneID)
+# Linear Regression of Proportion vs treatment time
+lm_propVStime=sapply(all_available_clone, function(x) {
+  clone_of_interest=killing_n_abundance_clone_keyDrugs$CloneID==x
+  killing_n_abundance_clone_keyDrugs_subset=killing_n_abundance_clone_keyDrugs[clone_of_interest,]
+  summary(lm(killing_n_abundance_clone_keyDrugs_subset$proportion~
+       killing_n_abundance_clone_keyDrugs_subset$treatment_time))
+  }
+  )
+
+# Get coefficient & P
+lm_propVStime_trimmed=sapply(lm_propVStime, function(x) x$coefficients[2,c(1,4)])
+colnames(lm_propVStime_trimmed)=as.character(all_available_clone)
+lm_propVStime_trimmed=as.data.frame(t(lm_propVStime_trimmed))
+lm_propVStime_trimmed$mean_killing=mean_killing_each_clone$mean_killing[
+  match(rownames(lm_propVStime_trimmed), mean_killing_each_clone$cloneID)]
+lm_propVStime_trimmed$mean_killingQ=mean_killing_each_clone$mean_killingQ[
+  match(rownames(lm_propVStime_trimmed), mean_killing_each_clone$cloneID)]
+lm_propVStime_trimmed$mean_killingQ=factor(lm_propVStime_trimmed$mean_killingQ, labels= c('Bottom 50%\n resistant', 'Top 50% \nresistant'))
+
+figure5D <- ggplot(lm_propVStime_trimmed, aes(y=Estimate, x=factor(mean_killingQ)))+
+  geom_boxplot()+
+  stat_compare_means(comparisons = combn(unique(lm_propVStime_trimmed$mean_killingQ), 2, simplify = F),method.args = list(alternative='l'))+
+  theme_bw(base_size = 13)+
+  labs(x='Clones', y='Rate of Emergence with\ntime elapsed from the\nstart of the treatment')
+ggsave(filename = 'Figures/figure5Dv0.pdf',figure5D,  width = 3, height = 3)
+```
+<!-- Plot Extended_Figure_8 -->
+<!-- Correlation btw resistance and days of treatment within each treatment-->
+```{r}
+only_PD=Viab_preANDpost_treatment_integrated$`Treatement Timepoint`=='PD'
+Extended_Figure_8 <-  ggplot(Viab_preANDpost_treatment_integrated[only_PD,],
+       aes(x=Change_resp,
+           y=biopsy_from_treatment,
+           fill=Treatment,
+           color=Treatment))+
+  geom_point()+
+  stat_smooth(method = 'lm')+
+  theme_bw(base_size = 20)+
+  labs(y='Biopsies Days from \nthe start of treatment',
+       x="Extent of Resistance")
+ggsave(Extended_Figure_8,
+       filename = 'Figures/Extended_Figure_8.pdf',
+       height = 5, width = 7)
+```
+<!-- Correlation btw resistance and days of treatment within each prior treatment category-->
+```{r}
+Viab_preANDpost_treatment_integrated$`Treatment Hx`[grep('on firs',Viab_preANDpost_treatment_integrated$`Treatment Hx`)]='on firstline TKI'
+
+Extended_Figure_8B <- ggplot(Viab_preANDpost_treatment_integrated,
+       aes(x=Change_resp,
+           y=biopsy_from_treatment,
+           fill=`Treatment Hx`,
+           color=`Treatment Hx`))+
+  geom_point()+
+  stat_smooth(method = 'lm')+
+  theme_bw(base_size = 20)+
+  labs(y='Biopsies Days from \nthe start of treatment',
+       x="∆Viability differential\n from baseline")
+ggsave(Extended_Figure_8B,
+       filename = 'Figures/Extended_Figure_8B.png',
+       height = 5, width = 7)
+ggsave(Extended_Figure_8B,
+       filename = 'Figures/Extended_Figure_8B.pdf',
+       height = 5, width = 7)
+
+```
+<!-- Correlation btw resistance and days of treatment within each patient-->
+```{r}
+table(Viab_preANDpost_treatment_integrated$`Patient ID`[only_PD])
+Viab_preANDpost_treatment_integrated[grep('TH179', Viab_preANDpost_treatment_integrated$`Patient ID`),]
+Viab_preANDpost_treatment_integrated$`Patient ID`=gsub('_TAT','',Viab_preANDpost_treatment_integrated$`Patient ID`)
+sort(table(Viab_preANDpost_treatment_integrated$`Patient ID`))
+POI=names(which(sort(table(Viab_preANDpost_treatment_integrated$`Patient ID`[only_PD]))>1))
+POI_id= Viab_preANDpost_treatment_integrated$`Patient ID` %in% POI
+Extended_Figure_8C<- ggplot(Viab_preANDpost_treatment_integrated[POI_id,],
+       aes(x=Change_resp,
+           y=biopsy_from_treatment,
+           fill=`Patient ID`,
+           color=`Patient ID`))+
+  geom_point()+
+  stat_smooth(method = 'lm')+
+  theme_bw(base_size = 20)+
+  labs(y='Biopsies Days from \nthe start of treatment',
+       x="∆Viability differential\n from baseline")
+ggsave(Extended_Figure_8C,
+       filename = 'Figures/Extended_Figure_8C.png',
+       height = 5, width = 7)
+ggsave(Extended_Figure_8C,
+       filename = 'Figures/Extended_Figure_8C.pdf',
+       height = 5, width = 7)
+
+# Leveraging all the data to ask whether within patient - resistance increases with time.
+summary(lm(Change_resp ~ 
+             biopsy_from_treatment:factor(`Treatement Timepoint`),
+   data = Viab_preANDpost_treatment_integrated))
+```
+
+```{r}
+remove_NA_id=Viab_preANDpost_treatment_integrated$`Primary/Metastatic`!='NA'
+Extended_Figure_8D<- ggplot(na.omit(Viab_preANDpost_treatment_integrated[only_PD & remove_NA_id,]),
+       aes(x=Change_resp,
+           y=biopsy_from_treatment,
+           fill=`Primary/Metastatic`,
+           color=`Primary/Metastatic`))+
+  geom_point()+
+  stat_smooth(method = 'lm')+
+  theme_bw(base_size = 20)+
+  labs(y='Biopsies Days from \nthe start of treatment',
+       x="∆Viability differential\n from baseline")+
+  scale_fill_manual(values=c("#999999", "#E69F00"))
+ggsave(Extended_Figure_8D,
+       filename = 'Figures/Extended_Figure_8D.png',
+       height = 5, width = 7)
+ggsave(Extended_Figure_8D,
+       filename = 'Figures/Extended_Figure_8D.pdf',
+       height = 5, width = 7)
+table(Viab_preANDpost_treatment_integrated$`Biopsy Type`)
+```
+<!-- Panel 5F, main text -->
+# Analyzing Cross resistancegith
+```{r}
+sort(table(Killing_patient_level_ann_biopsy_timepoint_Post$Treatment))
+Cross_resistance_mat=Killing_patient_level_ann_biopsy_timepoint_Post
+consider_PD_only=Cross_resistance_mat$`Treatement Timepoint`=='PD'
+Cross_resistance_mat=Cross_resistance_mat[consider_PD_only,]
+Killing_patient_level_ann_biopsy_timepoint_Post$Treatment=='dabrafenib'
+treated_wd_erlotinib=Cross_resistance_mat$Treatment=='erlotinib'
+treated_wd_osimertinib=Cross_resistance_mat$Treatment=='osimertinib'
+treated_wd_dabrafenib=Cross_resistance_mat$Treatment=='dabrafenib'
+treated_wd_trametinib=Cross_resistance_mat$Treatment=='trametinib'
+table(treated_wd_trametinib)
+Cross_resistance_mat$biopsy_from_treatment=
+  as.numeric(Cross_resistance_mat$`Treatment start to tissue acquisition (days)`)
+```
+<!-- Cross-resistance strength and significnace. -->
+```{r}
+CR_correlation_strength=data.frame(
+  Erlotinib_Treatment_Resistance=sapply(significant_drugs_names, function(x)
+       unlist(cor.test(Cross_resistance_mat[treated_wd_erlotinib,]$erlotinib,
+         Cross_resistance_mat[treated_wd_erlotinib,x])[c(4)])),
+dabrafenib_Treatment_Resistance=sapply(significant_drugs_names, function(x)
+       unlist(cor.test(Cross_resistance_mat[treated_wd_dabrafenib,]$dabrafenib,
+         Cross_resistance_mat[treated_wd_dabrafenib,x])[c(4)])),
+trametinib_Treatment_Resistance=err_handle(sapply(significant_drugs_names, function(x)
+       unlist(cor.test(Cross_resistance_mat[treated_wd_trametinib,]$trametinib,
+         Cross_resistance_mat[treated_wd_trametinib,x])[c(4)])))
+)
+CR_correlation_significance=data.frame(
+  Erlotinib_Treatment_Resistance=sapply(significant_drugs_names, function(x)
+       unlist(cor.test(Cross_resistance_mat[treated_wd_erlotinib,]$erlotinib,
+         Cross_resistance_mat[treated_wd_erlotinib,x])[c(3)])),
+dabrafenib_Treatment_Resistance=sapply(significant_drugs_names, function(x)
+       unlist(cor.test(Cross_resistance_mat[treated_wd_dabrafenib,]$dabrafenib,
+         Cross_resistance_mat[treated_wd_dabrafenib,x])[c(3)])),
+trametinib_Treatment_Resistance=sapply(significant_drugs_names, function(x)
+       unlist(cor.test(Cross_resistance_mat[treated_wd_trametinib,]$trametinib,
+         Cross_resistance_mat[treated_wd_trametinib,x])[c(3)]))
+)
+
+```
+<!-- Panel 5F: Plot the CR_corr_matrix -->
+```{r}
+CR_correlation_strength=as.matrix(CR_correlation_strength)
+colnames(CR_correlation_strength)=c('Erlotinib',
+                                    'Dabrafenib',
+                                    'Trametinib')
+rownames(CR_correlation_strength)=c('Dabrafenib',
+                                    'Erlotinib',
+                                    'Gemcitabine',
+                                    'Osimertinib',
+                                    'Trametinib')
+CR_correlation_significance=as.matrix(CR_correlation_significance)
+rownames(CR_correlation_significance)=rownames(CR_correlation_strength)
+colnames(CR_correlation_significance)=colnames(CR_correlation_strength)
+
+pdf(file = 'Figures/cross_resistance_correlation.pdf', width = 4.5, height=4)
+corrplot(CR_correlation_strength,
+         p.mat = CR_correlation_significance,
+         addCoef.col ='black',
+         insig = 'blank',
+         sig.level = 0.2,
+         number.cex = 1,
+         tl.cex = 0.9,
+         cl.cex = 0.75, cl.align.text = 'l')
+dev.off()
+```
+<!-- Panel 5F -->
+```{r}
+P1 <- ggplot(Cross_resistance_mat[treated_wd_erlotinib,],
+       aes(y=erlotinib, x=gemcitabine))+
+  geom_point()+
+  theme_bw(base_size = 20)+
+  stat_smooth(method='lm')+
+  labs(y='Erlotinib',
+       x='gemcitabine')+
+  stat_cor(size=5)
+P2 <- ggplot(Cross_resistance_mat[treated_wd_erlotinib,],
+       aes(y=erlotinib, x=dabrafenib))+
+  geom_point()+
+  theme_bw(base_size = 20)+
+  stat_smooth(method='lm')+
+  labs(y='Erlotinib',
+       x='dabrafenib')+
+  stat_cor(size=5)
+P3 <- ggplot(Cross_resistance_mat[treated_wd_erlotinib,],
+       aes(y=erlotinib, x=trametinib))+
+  geom_point()+
+  theme_bw(base_size = 20)+
+  stat_smooth(method='lm')+
+  labs(y='Erlotinib',
+       x='Trametinib')+
+  stat_cor(size=5)
+P4 <- ggplot(Cross_resistance_mat[treated_wd_dabrafenib,],
+       aes(y=dabrafenib, x=gemcitabine))+
+  geom_point()+
+  theme_bw(base_size = 20)+
+  stat_smooth(method='lm')+
+  labs(x='Gemcitabine',
+       y='Dabrafenib')+
+  stat_cor(size=5)
+ggsave(ggarrange(P1, P2, P3, P4),
+       filename = 'Figures/Figure_Cross_Resistance.pdf', height=6, width=6)
+```
+
+```{r}
+dabrafenib=rbind(data.frame(Pred_Viability=treatment_naive_Killing_each_drug_mean['dabrafenib'],
+                 Day=0, Point='pre-treatment'),
+      data.frame(
+        Pred_Viability=Cross_resistance_mat$dabrafenib[
+          Cross_resistance_mat$Treatment=='dabrafenib'],
+        Day=as.numeric(
+          Cross_resistance_mat$`Treatment start to tissue acquisition (days)`[Cross_resistance_mat$Treatment=='dabrafenib']), 
+         Point='Post-treatment'
+      ) )
+```
+
+```{r}
+dabrafenib_expanded=rbind(data.frame(Pred_Viability=treatment_naive_Killing_each_drug$dabrafenib,
+                 Day=0, Point='pre-treatment'),
+      data.frame(
+        Pred_Viability=Cross_resistance_mat$dabrafenib[
+          Cross_resistance_mat$Treatment=='dabrafenib'],
+        Day=as.numeric(
+          Cross_resistance_mat$`Treatment start to tissue acquisition (days)`[Cross_resistance_mat$Treatment=='dabrafenib']), 
+         Point='Post-treatment'
+      ) )
+
+```
+<!-- Panel 5D -->
+```{r}
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+ return(data_sum)
+}
+
+df2 <- data_summary(dabrafenib_expanded, varname="Pred_Viability", 
+                    groupnames=c("Day"))
+df2$Sample_type='Post-Treatment'
+df2$Sample_type[df2$Day==0]='Pre-Treatment'
+ggplot(df2, aes(x=Day, y=Pred_Viability)) + 
+  geom_line()+
+  geom_pointrange(aes(ymin=Pred_Viability-sd, ymax=Pred_Viability+sd, color=Sample_type))
+
+
+ggplot(df2, aes(x=Day, y=Pred_Viability)) + 
+  geom_line()+
+  geom_pointrange(aes(ymin=Pred_Viability-sd, ymax=Pred_Viability+sd, color=Sample_type))
+
+df2$sd[is.na(df2$sd)]=0
+panel_C <- ggplot(df2, aes(x=Day, y=Pred_Viability)) + 
+  geom_line()+
+  geom_point()+
+  geom_errorbar(aes(ymin=Pred_Viability-sd, ymax=Pred_Viability+sd), width=20)+
+  theme_bw(base_size = 15)+
+  labs(x='Elapsed Treatment Time', y='Predicted Viability (z)')
+ggsave(panel_C,
+       filename = 
+         'Figures/Figure7C_onePatient.pdf',
+       height = 4, width = 4)
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
