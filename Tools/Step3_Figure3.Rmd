@@ -162,7 +162,7 @@ all_panels <- grid.arrange(panelB, panelC, panelD, panel_E,
                                                  c(2, 3)
                                                  ))
 ggsave(all_panels, filename = 'Figures/Figure3.pdf', height = 15, width = 10)
-ggsave(all_panels, filename = 'Figures/Figure3.tiff', height = 15, width = 10)
+ggsave(all_panels, filename = 'Figures/Figure3.png', height = 15, width = 10)
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
