@@ -71,7 +71,7 @@ you need to edit the file once manually to change a line near the top that curre
     Tools/Step2_Figure1.Rmd;  Tools/Step3_Figure3.Rmd;  Tools/Step5_Figure5_and_Extended_Figure9_10.Rmd;  Tools/Step6_ExtendedFigure4-6.Rmd;  Tools/Step7_ExtendedFigure1.Rmd.
 The filenames are chosen so that  "StepN" represents the order of the results are produced and presented in the manuscript.
 
-<b>Step 10</b> (Optional, open-ended): Using whatever criteria you wish compare the newly generated figires in the Figures subdirectory to the manuscript figures
+<b>Step 10</b> (Optional, open-ended): Using whatever criteria you wish compare the newly generated figures in the Figures subdirectory to the manuscript figures
     in the Figures_expected subdirectory
 
 <b>Notes on the structure of repository:</b>
