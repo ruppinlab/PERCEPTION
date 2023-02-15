@@ -31,7 +31,7 @@ The Figures subdirectory contains the Figures.
      cp * ../Figures_expected
      cd ..
 ```
-These commands copy the figures provided into a new folde called Figures_expected, so that if you run the Figure generating commands
+These commands copy the figures provided into a new folder called Figures_expected, so that if you run the Figure generating commands
 and thereby replace the Files in the Figures subdirectory, you can subsequently compare the newly generated files in Figures
 to the expected files in Figures_expected.
 
