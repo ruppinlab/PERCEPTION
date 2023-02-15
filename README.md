@@ -127,7 +127,7 @@ To provide guidance to the users on how PERCEPTION could be used for new clinica
 <br><br>
 It should be emphasized that the application of PERCEPTION is not limited to the aforementioned script. Researchers can utilize the PERCEPTION model to explore various aspects of their studies. The scripts ((Step2_Figure1.Rmd , Step3_Figure3.Rmd, Step5_Figure5_and_Extended_Figure9_10.Rmd, Step6_ExtendedFigure4-6.Rmd, Step7_ExtendedFigure1.Rmd)) described in the Section 1 has already provided examples of this, where we employed PERCEPTION to analyze three different clinical trial datasets for different cancer types and addressed several aspects associated with individual datasets.
 
-<h4><i>The guidance for using Running_PERCEPTION_for_new_dataset.Rmd</i></h4>
+<h4><i>The guidance for using "Running_PERCEPTION_for_new_dataset.Rmd" script.</i></h4>
 To run the PERCEPTION on the new clinical trial dataset, please use <b>Tools/Running_PERCEPTION_for_new_dataset.Rmd</b>. 
 <br><br>
 The two main steps are Step1 and Step2 in this script, where attention is needed. In Step1 (lines 32-38), the users need to upload their own files; in Step2 (line 50), the users need to provide the name of their drug of interest for which they want to build the PERCEPTION model and predict the treatment response.
