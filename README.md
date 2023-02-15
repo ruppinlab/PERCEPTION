@@ -145,7 +145,7 @@ For patient demographics and clinical response data, we have uploaded a sample f
 <h4><i>How to build the model and run the code for specific drugs?</i></h4>
 The Step2 of this code (Running_PERCEPTION_for_new_dataset.Rmd) demonstrated how the users could use it to build the response model for specific drugs. We have used the example of two drugs, dabrafenib and erlotinib. The users could select any combination of drugs from the list of 44 drugs to build their own response model. We have described it within the code.
 
-<h4><i>What are the expected outputs of Running_PERCEPTION_for_new_dataset.Rmd?</i></h4>
+<h4><i>What are the expected outputs of "Running_PERCEPTION_for_new_dataset.Rmd" script?</i></h4>
 This script identifies the major cancer cell clusters in the patient's tumor using their sc-expression (transcriptional clone). By computing the mean expression of each transcriptional clone and providing it as an input to the drug response model, this script predicts the drug response of each transcriptional clone separately. Considering that the most resistant clone to the drug will likely get selected by the treatment, this script predicts the overall patient’s response as the predicted response of the most resistant clone.
 <br><br>
 The figures generated using the sample dataset are provided in the Test/Test_figures directory. 
