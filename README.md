@@ -131,6 +131,7 @@ It should be emphasized that the application of PERCEPTION is not limited to the
 To run the PERCEPTION on the new clinical trial dataset, please use <b>Tools/Running_PERCEPTION_for_new_dataset.Rmd</b>. 
 <br><br>
 The two main steps are Step1 and Step2 in this script, where attention is needed. In Step1 (lines 32-38), the users need to upload their own files; in Step2 (line 50), the users need to provide the name of their drug of interest for which they want to build the PERCEPTION model and predict the treatment response.
+
 ![PERCEPTION_2](https://user-images.githubusercontent.com/26137763/231008376-fa687496-d816-4a7f-ac32-bde73b0f7206.png)
 
 The two main steps are Step1 and Step2 in this script, where attention is needed. In Step1 (lines 32-38), the users need to upload their own files; in Step2 (line 50), the users need to provide the name of their drug of interest for which they want to build the PERCEPTION model and predict the treatment response.
