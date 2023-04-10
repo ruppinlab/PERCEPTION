@@ -9,7 +9,7 @@ html_notebook: default
 <!-- Step1: loading necessary files -->
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/sinhas8/project_SCPO_submission_wdData/'
+working_directory='/Users/mukherjees11/Documents/SCPO_submission'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 
@@ -355,3 +355,7 @@ dev.copy(png,filename="Figures/Fig6.png")
 dev.off ()
 
 ```
+
+
+
+Sanju

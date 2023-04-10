@@ -1,7 +1,9 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+html_notebook: default
 ---
+
 <!-- These are functions are custom functions that are needed to perform  -->
 <!-- simple tasks eg. rank nomalization of a mat, error handling etc. -->
 <!-- The is to avoid repetitively writing same scripts are used many times -->

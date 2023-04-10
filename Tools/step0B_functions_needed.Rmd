@@ -1,6 +1,7 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+html_notebook: default
 ---
 <!-- Below functions are needed to build, train, and test PERCEPTION model in cell lines & patients -->
 # This could be divided into two steps: 
