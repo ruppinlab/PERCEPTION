@@ -1,6 +1,6 @@
 # PERsonalized single-Cell Expression-based Planning for Treatments In ONcology (PERCEPTION)
 We build a precision oncology computational approach capitalizes on recently published matched bulk and single-cell (SC) transcriptome profiles of large-scale cell-line drug screens to build treatment response models from patients' SC tumor transcriptomics. The general objective of this project is to utilize single-cell omics from patients tumor to predict response and resistance. The following figure describe the pipeline of PERCEPTION and its application.
-![PERCEPTION pipeline_new](https://user-images.githubusercontent.com/26137763/216864419-a8a35147-ce34-43bd-a360-38d9ac07d4ac.png)
+![PERCEPTION_1](https://user-images.githubusercontent.com/26137763/231007893-7a6ba634-a2cc-4e39-baf0-3441ba4a3f38.png)
 
 <h2><b>Section 1: How to reproduce the Figures from the PERCEPTION manuscript?</b></h2>
 This section will describe how to reproduce the figures described in the following manuscript.
@@ -123,6 +123,8 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 	 TableS5 copy.csv 
 
 <h2><b>Section 2: How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
+![PERCEPTION_2](https://user-images.githubusercontent.com/26137763/231007959-fad16f36-da75-45e2-8071-2c98eb182a63.png)
+
 To provide guidance to the users on how PERCEPTION could be used for new clinical trial datasets, we have generated a new script named <b>“Running_PERCEPTION_for_new_dataset.Rmd”</b>. This script will provide the fundamental functionality of PERCEPTION in predicting treatment response using a patient's scRNA-seq expression data for particular drugs or combination therapies. 
 <br><br>
 It should be emphasized that the application of PERCEPTION is not limited to the aforementioned script. Researchers can utilize the PERCEPTION model to explore various aspects of their studies. The scripts (Step2_Figure1.Rmd , Step3_Figure3.Rmd, Step5_Figure5_and_Extended_Figure9_10.Rmd, Step6_ExtendedFigure4-6.Rmd, Step7_ExtendedFigure1.Rmd) described in the Section 1 has already provided examples of this, where we employed PERCEPTION to analyze three different clinical trial datasets for different cancer types and addressed several aspects associated with individual datasets.
