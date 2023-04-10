@@ -123,7 +123,10 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 	 TableS5 copy.csv 
 
 <h2><b>Section 2: How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
-To provide guidance to the users on how PERCEPTION could be used for new clinical trial datasets, we have generated a new script named <b>“Running_PERCEPTION_for_new_dataset.Rmd”</b>. This script will provide the fundamental functionality of PERCEPTION in predicting treatment response using a patient's scRNA-seq expression data for particular drugs or combination therapies. 
+To provide guidance to the users on how PERCEPTION could be used for new clinical trial datasets, we have generated a new script named <b>“Running_PERCEPTION_for_new_dataset.Rmd”</b>. This script will provide the fundamental functionality of PERCEPTION in predicting treatment response using a patient's scRNA-seq expression data for particular drugs or combination therapies. The following figure describe how PERCEPTION could be utilized to predict treatment response.
+
+![PERCEPTION_2](https://user-images.githubusercontent.com/26137763/231008376-fa687496-d816-4a7f-ac32-bde73b0f7206.png)
+
 <br><br>
 It should be emphasized that the application of PERCEPTION is not limited to the aforementioned script. Researchers can utilize the PERCEPTION model to explore various aspects of their studies. The scripts (Step2_Figure1.Rmd , Step3_Figure3.Rmd, Step5_Figure5_and_Extended_Figure9_10.Rmd, Step6_ExtendedFigure4-6.Rmd, Step7_ExtendedFigure1.Rmd) described in the Section 1 has already provided examples of this, where we employed PERCEPTION to analyze three different clinical trial datasets for different cancer types and addressed several aspects associated with individual datasets.
 
@@ -131,8 +134,6 @@ It should be emphasized that the application of PERCEPTION is not limited to the
 To run the PERCEPTION on the new clinical trial dataset, please use <b>Tools/Running_PERCEPTION_for_new_dataset.Rmd</b>. 
 <br><br>
 The two main steps are Step1 and Step2 in this script, where attention is needed. In Step1 (lines 32-38), the users need to upload their own files; in Step2 (line 50), the users need to provide the name of their drug of interest for which they want to build the PERCEPTION model and predict the treatment response.
-
-![PERCEPTION_2](https://user-images.githubusercontent.com/26137763/231008376-fa687496-d816-4a7f-ac32-bde73b0f7206.png)
 
 The two main steps are Step1 and Step2 in this script, where attention is needed. In Step1 (lines 32-38), the users need to upload their own files; in Step2 (line 50), the users need to provide the name of their drug of interest for which they want to build the PERCEPTION model and predict the treatment response.
 <br><br>
