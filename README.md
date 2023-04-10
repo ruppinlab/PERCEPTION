@@ -123,6 +123,7 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 	 TableS5 copy.csv 
 
 <h2><b>Section 2: How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
+<br>
 ![PERCEPTION_2](https://user-images.githubusercontent.com/26137763/231007959-fad16f36-da75-45e2-8071-2c98eb182a63.png)
 
 To provide guidance to the users on how PERCEPTION could be used for new clinical trial datasets, we have generated a new script named <b>“Running_PERCEPTION_for_new_dataset.Rmd”</b>. This script will provide the fundamental functionality of PERCEPTION in predicting treatment response using a patient's scRNA-seq expression data for particular drugs or combination therapies. 
