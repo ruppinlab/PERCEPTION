@@ -18,9 +18,9 @@ To reproduce the results one must clone the GitHub repository and download the f
 
 <b>Step 1:</b> Clone/Download this repository using the command
 ```
-	git clone https://github.com/ruppinlab/SCPO_submission
+	git clone https://github.com/ruppinlab/PERCEPTION
 ```
-This git clone command should create a directory called SCPO_submission that contains this README.md file and two subdirectories called Tools and Figures.
+This git clone command should create a directory called PERCEPTION that contains this README.md file and two subdirectories called Tools and Figures.
 The Tools subdirectory contains the .Rmd files to be run.
 The Figures subdirectory contains the Figures. 
 
