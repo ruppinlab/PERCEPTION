@@ -6,7 +6,7 @@ html_notebook: default
 <!-- For a given set of drugs of Interest - Build a PERCEPTION model -->
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/sinhas8/project_SCPO_submission/'
+working_directory='/Users/mukherjees11/Documents/SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 <!-- Load DepMAP data and already existing models -->
@@ -26,7 +26,7 @@ approved_drugs_model=readRDS('Data/FDA_approved_drugs_models.RDS')
 <!-- Step 0: Create Inputs for PERCEPTION -->
 ```{r}
 # DOI stands for Drugs of interest; PERCEPTION will be run on these drugs; For each drug, there will be a seperate model
-DOI=names(approved_drugs_model)[1:2]
+DOI=names(approved_drugs_model)[1:44]
 #@Sumit - The above run is for two drugs. It takes 1 minute or so to run. If you use all 44 - this may take 15-20 mins. 
 # What cancer type the PERCEPTION will be trained on?; PanCan stands for Pan-cancer.
 cancerType='PanCan'
@@ -86,7 +86,7 @@ for (i in 1:length(DOI)) {
   Performance_by_features[[i]] <- lapply(Raw_models_output, function(x) x$performance_in_scRNA)
 
   # Store the Tuned model
-  for_output_lung_Test_vglm[[i]] <- Raw_models_output[[which.max(sapply(Raw_models_output, function(x) x$performance_in_scRNA)[2,])]]
+  for_output_lung_Test_vglm[[i]] <- err_handle(Raw_models_output[[which.max(sapply(Raw_models_output, function(x) x$performance_in_scRNA)[2,])]])
   
   # Remove temporary variables and garbage collect
   rm(Raw_models_output)

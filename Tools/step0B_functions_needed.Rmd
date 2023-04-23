@@ -1,9 +1,7 @@
 ---
 title: "R Notebook"
-output:
-html_notebook: default
+output: html_notebook
 ---
-
 <!-- Below functions are needed to build, train, and test PERCEPTION model in cell lines & patients -->
 # This could be divided into two steps: 
 # 1. Initial training in cell lines using bulk-expression and drug response.
@@ -80,7 +78,8 @@ feature_ranking_bulk<-function(infunc_drugName=DOI[1],
     CellLinee2exclude=onTarget$annotation_20Q4$DepMap_ID[
       grep(exclude_cancer,onTarget$annotation_20Q4$lineage)]
     if(exclude_cancer=='PanCan'){
-      CellLinee2exclude=intersect(CellLines_with_singleCellExp, onTarget$annotation_20Q4$DepMap_ID)
+      CellLinee2exclude=intersect(CellLines_with_singleCellExp,
+                                  onTarget$annotation_20Q4$DepMap_ID)
     }
     cellLines2remove=intersect(CellLinee2exclude,CellLines_with_singleCellExp)
     
@@ -88,7 +87,7 @@ feature_ranking_bulk<-function(infunc_drugName=DOI[1],
                              cellLines2remove)
     print(length(common_cellLines))
   } else{
-    infunc_cancerType='lung'
+    # infunc_cancerType='lung'
     CellLines_lung=onTarget$annotation_20Q4$DepMap_ID[
       grep(infunc_cancerType,onTarget$annotation_20Q4$lineage)]
     CellLines_with_drugResponse=names(infunc_response)
@@ -129,7 +128,7 @@ run_parallel_feature_ranking_bulk<-function(id_cancerType=cancerType,
   featuresRank_fromBulk
 }
 ```
-<!-- Step 2: Using features selected from bulk-expression, we build a model in bulk & then tune the parameters based on performance in sc-rna-seq-->
+<!-- Step 1B: Identify genes with bulk-expression are significantly correlated with drugs response -->
 ```{r}
 build_on_BULK_v2<-function(infunc_drugName=DOI[1],
                         infunc_cancerType='PanCan',
@@ -350,10 +349,11 @@ infunc_compare_performance=list(model_perf_CV=do.call(rbind, lapply(model_for,
     err_handle(mean(x[,2], na.rm = T) ))
 }
 ```
+##################
 <!-- get Cell lines list and response matrix of a particular cancer type considering exclusions-->
+##################
 ```{r}
-get_response_matrix <- function(infunc_mode=mode,
-                                infunc_drugName, exclude_cancer){
+get_response_matrix <- function(infunc_mode=mode,infunc_drugName, exclude_cancer){
   if(infunc_mode=='AUC'){
     # Mode 1: All HTS
     # Mode 2: Priortize MTS
@@ -596,8 +596,8 @@ seurat_clustering <- function(input_matrix){
 ```
 <!-- Genes used to build models -->
 ```{r}
-genesUsed_toBuild=intersect(rownames(onTarget$expression_20Q4),
-                            rownames(onTarget$scRNA_complete))
+# genesUsed_toBuild=intersect(rownames(onTarget$expression_20Q4),
+#                             rownames(onTarget$scRNA_complete))
 # saveRDS(genesUsed_toBuild, 'Data/genesUsed_toBuild.RDS')
 ```
 

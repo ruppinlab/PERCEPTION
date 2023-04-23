@@ -1,9 +1,7 @@
 ---
 title: "R Notebook"
-output:
-html_notebook: default
+output: html_notebook
 ---
-
 <!-- These are functions are custom functions that are needed to perform  -->
 <!-- simple tasks eg. rank nomalization of a mat, error handling etc. -->
 <!-- The is to avoid repetitively writing same scripts are used many times -->
@@ -372,8 +370,12 @@ cor.test.formula <-
 <!-- Libraries needed -->
 ```{r}
 library(RColorBrewer)
+library(ggplot2)
+library(ggpubr)
+library(gridExtra)
 library(grid)
 library(lattice)
+
 require(data.table,quietly = T)
 require('tictoc',quietly = T)
 require(ggplot2,quietly = T)
@@ -393,12 +395,9 @@ library(viridis)
 library(reshape2)
 require(Seurat)
 library(corrplot)
-require(DEGreport)
 require(devtools)
 require(ggpmisc)
-require(modes)
 require(readxl)
-require(caret)
 ```
 
 

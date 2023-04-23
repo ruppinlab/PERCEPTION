@@ -1,12 +1,14 @@
 ---
 title: "R Notebook"
-output:
-html_notebook: default
+output: html_notebook
 ---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/sinhas8/SCPO_submission/'
+working_directory='/Users/mukherjees11/Documents/SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 <!-- Plot Figure 1D-E:  -->
@@ -38,10 +40,10 @@ lung_tSNE[,3]=as.numeric(lung_tSNE[,3])
 biomarker_name='MDM2'
 biomarker_id=match(biomarker_name, rownames(onTarget$CPM_scRNA_CCLE_rnorm))
 biomarker_abundance=onTarget$CPM_scRNA_CCLE_rnorm[biomarker_id,]
-needed_cells_id=match(gsub('-','\\.',lung_tSNE$NAME), colnames(onTarget$CPM_scRNA_CCLE_rnorm))
+needed_cells_id=match(lung_tSNE$NAME, colnames(onTarget$CPM_scRNA_CCLE_rnorm))
 matched_biomarker_abundance=biomarker_abundance[needed_cells_id]
 
-mdm2_model=readRDS('/Users/sinhas8/Project_scRNAbased_drugCombination/Data/resp_model_nutlin_3.RDS')
+mdm2_model=readRDS('Data/Response_model_nutlin3.RDS')
 viability_required=viability_from_model(infunc_DruName=DOI,
                                         infun_model=mdm2_model$nutlin3$model,
                                         infunc_dataset=onTarget$CPM_scRNA_CCLE_rnorm[
