@@ -18,9 +18,9 @@ To reproduce the results one must clone the GitHub repository and download the f
 
 <b>Step 1:</b> Clone/Download this repository using the command
 ```
-	git clone https://github.com/ruppinlab/SCPO_submission
+	git clone https://github.com/ruppinlab/PERCEPTION
 ```
-This git clone command should create a directory called SCPO_submission that contains this README.md file and two subdirectories called Tools and Figures.
+This git clone command should create a directory called PERCEPTION that contains this README.md file and two subdirectories called Tools and Figures.
 The Tools subdirectory contains the .Rmd files to be run.
 The Figures subdirectory contains the Figures. 
 
@@ -59,10 +59,10 @@ expected are listed near the bottom of this file.
 	Step6_ExtendedFigure4-6.Rmd  
 	Step7_ExtendedFigure1.Rmd
      
-you need to edit the file once manually to change a line near the top that currently reads: working_directory='/Users/mukherjees11/Documents/SCPO_submission/' Replace the characters in single quotes with the full path to the repository SCPO_submission.
+you need to edit the file once manually to set the "working_directory" to the full path to the your repository PERCEPTION. e.g. working_directory='/Users/sinhas8/PERCEPTION/'
  
 
-<b>Step 7:</b> From the SCPO directory open RStudio 
+<b>Step 7:</b> From the PERCEPTION directory open RStudio 
         You may need to run setwd() to set the working directory.
 
 <b>Step 8:</b> "Step0A" comprises a list of libraries from line 372-399 that are required to run the following scripts. Please install them in your Rstudio environment. [Please refer to this to install a new library: https://r-coder.com/install-r-packages/]
