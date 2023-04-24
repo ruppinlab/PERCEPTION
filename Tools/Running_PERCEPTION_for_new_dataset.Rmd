@@ -8,8 +8,8 @@ html_notebook: default
 
 <!-- Step1: loading necessary files -->
 ```{r, setup, include=FALSE}
-# Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/mukherjees11/Documents/SCPO_submission'
+# Set working directory to the directory where "PERCEPTION" is cloned.
+working_directory='/Users/sinhas8/Project_SCPO_submission/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 
