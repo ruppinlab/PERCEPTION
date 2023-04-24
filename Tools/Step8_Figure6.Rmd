@@ -4,9 +4,20 @@ output:
 html_notebook: default
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+<!-- This script is designed to benchmark and compare the performance of the PERCEPTION algorithm with five different published predictors and three random models. The performance comparison is based on the prediction results from three clinical cohorts. The nine models considered in this script are as follows: -->
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+<!-- PERCEPTION -->
+<!-- BeyondCell (state-of-the-model based on sc-expression) -->
+<!-- ATLANTIS (state-of-the-art bulk-expression based model) -->
+<!-- Pseudo-Bulk (pseudo-bulk-RNA-seq) -->
+<!-- Mean Viability (mean viability across all single cells in a tumor sample) -->
+<!-- Bulk-based-only PERCEPTION (not tuned on SC-expression) -->
+<!-- Random Model 1 (shuffled viability labels) -->
+<!-- Random Model 2 (random gene signatures) -->
+<!-- Random Model 3 (random coefficients) -->
+<!-- The performance metric used for the comparison is the Area Under the Curve (AUC) of the Receiver Operating Characteristic (ROC). This script will generate the AUC values for each of the nine models and display them in Figure 4B. Please note that running nine models for comparison can be computationally intensive and time-consuming. Due to this, only the AUC values are used to generate the figures. -->
+
+
 ```{r, setup, include=FALSE}
 # Set working directory to the directory where "PERCEPTION" is cloned.
 working_directory='/Users/mukherjees11/Documents/PERCEPTION'
