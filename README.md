@@ -42,7 +42,7 @@ to the expected files in Figures_expected.
 This command creates a Data subdirectory that is parallel to the Figures and Tools subdirectories.
 The Data subdirectory will contain the data files, which you will download from Zenodo in the next step.
 
-<b>Step 4:</b> Download the data files from the following Zenodo repository https://doi.org/10.5281/zenodo.6528990
+<b>Step 4:</b> Download the data files from the following Zenodo repository https://doi.org/10.5281/zenodo.7860559
 into the Data subdirectory. Due to the limitations of Zenodo, you must download one file at a time. The data files
 expected are listed near the bottom of this file. 
 
@@ -58,6 +58,7 @@ expected are listed near the bottom of this file.
 	Step5_Figure5_and_Extended_Figure9_10.Rmd  
 	Step6_ExtendedFigure4-6.Rmd  
 	Step7_ExtendedFigure1.Rmd
+	Step8_Figure6.Rmd
      
 you need to edit the file once manually to set the "working_directory" to the full path to the your repository PERCEPTION. e.g. working_directory='/Users/sinhas8/PERCEPTION/'
  
@@ -68,7 +69,7 @@ you need to edit the file once manually to set the "working_directory" to the fu
 <b>Step 8:</b> "Step0A" comprises a list of libraries from line 372-399 that are required to run the following scripts. Please install them in your Rstudio environment. [Please refer to this to install a new library: https://r-coder.com/install-r-packages/]
 
 <b>Step 9:</b> Using the File pull-down menu in Rstudio, load and run in succession:
-    Tools/Step2_Figure1.Rmd;  Tools/Step3_Figure3.Rmd;  Tools/Step5_Figure5_and_Extended_Figure9_10.Rmd;  Tools/Step6_ExtendedFigure4-6.Rmd;  Tools/Step7_ExtendedFigure1.Rmd.
+    Tools/Step2_Figure1.Rmd;  Tools/Step3_Figure3.Rmd;  Tools/Step5_Figure5_and_Extended_Figure9_10.Rmd;  Tools/Step6_ExtendedFigure4-6.Rmd;  Tools/Step7_ExtendedFigure1.Rmd; Step8_Figure6.Rmd.
 The filenames are chosen so that  "StepN" represents the order of the results are produced and presented in the manuscript.
 
 <b>Step 10</b> (Optional, open-ended): Using whatever criteria you wish compare the newly generated figures in the Figures subdirectory to the manuscript figures
@@ -91,6 +92,7 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 	Step5_Figure5_and_Extended_Figure9_10.Rmd
 	Step6_ExtendedFigure4-6.Rmd 
 	Step7_ExtendedFigure1.Rmd
+	Step8_Figure6.Rmd
 
 <b>Files to get from zenodo and place in the Data subdirectory:</b> 
 
@@ -120,14 +122,15 @@ Scripts to expect from Github repo: A folder name "Tools" comprising following f
 	 Supp_COhen_IdoAmit_etal.zip 
 	 Suppl_table_processed_drugresponse.xlsx 
 	 TableS5.csv 
-	 TableS5 copy.csv 
+	 TableS5 copy.csv
+	 Model_Perforamnces_PatientCohorts.RDS
 
 <h2><b>Section 2: How to utilize PERCEPTION for a new clinical trial dataset with sc-expression?</b></h2>
 To provide guidance to the users on how PERCEPTION could be used for new clinical trial datasets, we have generated a new script named <b>“Running_PERCEPTION_for_new_dataset.Rmd”</b>. This script will provide the fundamental functionality of PERCEPTION in predicting treatment response using a patient's scRNA-seq expression data for particular drugs or combination therapies. The following figure describe how PERCEPTION could be utilized to predict treatment response.
 
 ![PERCEPTION_2](https://user-images.githubusercontent.com/26137763/231008376-fa687496-d816-4a7f-ac32-bde73b0f7206.png)
 <br>
-It should be emphasized that the application of PERCEPTION is not limited to the aforementioned script. Researchers can utilize the PERCEPTION model to explore various aspects of their studies. The scripts (Step2_Figure1.Rmd , Step3_Figure3.Rmd, Step5_Figure5_and_Extended_Figure9_10.Rmd, Step6_ExtendedFigure4-6.Rmd, Step7_ExtendedFigure1.Rmd) described in the Section 1 has already provided examples of this, where we employed PERCEPTION to analyze three different clinical trial datasets for different cancer types and addressed several aspects associated with individual datasets.
+It should be emphasized that the application of PERCEPTION is not limited to the aforementioned script. Researchers can utilize the PERCEPTION model to explore various aspects of their studies. The scripts (Step2_Figure1.Rmd , Step3_Figure3.Rmd, Step5_Figure5_and_Extended_Figure9_10.Rmd, Step6_ExtendedFigure4-6.Rmd, Step7_ExtendedFigure1.Rmd; Step8_Figure6.Rmd) described in the Section 1 has already provided examples of this, where we employed PERCEPTION to analyze three different clinical trial datasets for different cancer types and addressed several aspects associated with individual datasets.
 
 <h4><i>The guidance for using "Running_PERCEPTION_for_new_dataset.Rmd" script.</i></h4>
 To run the PERCEPTION on the new clinical trial dataset, please use <b>Tools/Running_PERCEPTION_for_new_dataset.Rmd</b>. 
@@ -142,7 +145,7 @@ We provided an example of how the script utilizes sample datasets to build the P
 We have tested this code for a demo dataset; the authors should use this example to format their input files. In Step1 (lines 32-38) of Running_PERCEPTION_for_new_dataset.Rmd, the example input files are provided. The authors should follow these file types to build their own datasets. Basically, three input files are needed as input (i) single-cell gene expression matrix from patients, (ii) cell names in each patient, and (iii) patient demographics, including clinical response data.
 
 <h4><i>Where is the test dataset available?</i></h4>
-We used the PRJNA591860 dataset as an example/demo. We are unable to upload these files in GitHub due to restrictions on file size. Please download the PRJNA591860.RDS and PRJNA591860_sample_cell_names.RDS from the Zenodo repository https://doi.org/10.5281/zenodo.6528990 and placed these into the Data directory. If you already downloaded all the files from Zenodo and placed them in the Data directory; then you don't need to download these two files again. PRJNA591860.RDS contains the single-cell gene expression matrix and PRJNA591860_sample_cell_names.RDS contains the cell names in each patient. 
+We used the PRJNA591860 dataset as an example/demo. We are unable to upload these files in GitHub due to restrictions on file size. Please download the PRJNA591860.RDS and PRJNA591860_sample_cell_names.RDS from the Zenodo repository https://doi.org/10.5281/zenodo.7860559 and placed these into the Data directory. If you already downloaded all the files from Zenodo and placed them in the Data directory; then you don't need to download these two files again. PRJNA591860.RDS contains the single-cell gene expression matrix and PRJNA591860_sample_cell_names.RDS contains the cell names in each patient. 
 <br><br>
 For patient demographics and clinical response data, we have uploaded a sample file named Sample_data_response.xlsx in the Test/Test_data directory. Please download this file in your Data directory.
 
