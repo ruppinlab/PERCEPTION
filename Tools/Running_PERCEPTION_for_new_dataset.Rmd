@@ -135,9 +135,11 @@ seurat_clustering <- function(input_matrix){
   cluster_so <- FindClusters(cluster_so, resolution = 0.8)
   return(cluster_so)
 }
-set.seed(1)
+# Seurat ‘4.1.1’ version was used to cluster & generate Umap. 
+# To generate an exactly same UMap as below, please make sure that the seed & seurat version is 4.1.1.
+packageVersion("Seurat"); set.seed(42)
 cluster_so=seurat_clustering(sample_data)
-cluster_so <- RunUMAP(cluster_so, dims = 1:10)
+cluster_so <- RunUMAP(cluster_so, dims = 1:10, seed.use = 42)
 figure1_umap_dataset=DimPlot(cluster_so, reduction = "umap")
 ggsave(figure1_umap_dataset, filename = 'Figures/Fig1.png', height=6, width=6)
 # <!-- Create Clone ID for each cell-->
