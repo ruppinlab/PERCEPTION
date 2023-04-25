@@ -5,8 +5,8 @@ html_notebook: default
 ---
 <!-- For a given set of drugs of Interest - Build a PERCEPTION model -->
 ```{r, setup, include=FALSE}
-# Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/mukherjees11/Documents/SCPO_submission/'
+# Set working directory to the directory where "PERCEPTION" is cloned.
+working_directory='/Users/sinhas8/PERCEPTION/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 <!-- Load DepMAP data and already existing models -->

@@ -7,8 +7,8 @@ html_notebook: default
 <!-- Plot Figure 5: Capturing the emergence of resistance in lung cancer cohort.-->
 <!-- Predicting the development of resistance to tyrosine kinase inhibitors (TKIs) in lung cancer patients. -->
 ```{r, setup, include=FALSE}
-# Set working directory to the directory where "SCPO_submission" is cloned.
-working_directory='/Users/mukherjees11/Documents/SCPO_submission/'
+# Set working directory to the directory where "PERCEPTION" is cloned.
+working_directory='/Users/sinhas8/PERCEPTION/'
 knitr::opts_knit$set(root.dir = working_directory)
 ```
 
