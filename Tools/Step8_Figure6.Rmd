@@ -30,7 +30,7 @@ require(ggplot2)
 ```
 
 ```{r}
-Model_Perforamnces_PatientCohorts <- readRDS('/Users/sinhas8/Project_scRNAbased_drugCombination/Data/Model_Perforamnces_PatientCohorts.RDS')
+Model_Perforamnces_PatientCohorts <- readRDS('Data/Model_Perforamnces_PatientCohorts.RDS')
 ```
 
 
